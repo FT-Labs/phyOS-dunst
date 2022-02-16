@@ -102,7 +102,6 @@ test/test: ${OBJ} ${TEST_OBJ}
 	${CC} -o ${@} ${TEST_OBJ} $(filter-out ${TEST_OBJ:test/%=src/%},${OBJ}) ${CFLAGS} ${LDFLAGS}
 
 .PHONY: doc doc-doxygen
-doc: docs/dunst.1 docs/dunst.5 docs/dunstctl.1
 
 
 doc-doxygen:
