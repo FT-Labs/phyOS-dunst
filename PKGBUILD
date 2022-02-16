@@ -20,13 +20,13 @@ source=("git://github.com/PhyTech-R0/dunst-phyOS")
 md5sums=('SKIP')
 
 build() {
-  cd dunst-phyOS-$pkgver
+  cd dunst-phyOS
 
   make PREFIX=/usr SYSCONFDIR=/etc X11INC=/usr/include/X11 X11LIB=/usr/lib/X11 all
 }
 
 package() {
-  cd dunst-phyOS-$pkgver
+  cd dunst-phyOS
 
   make DESTDIR="$pkgdir" SYSCONFDIR=/etc PREFIX=/usr install
   install -Dm755 dunstify "$pkgdir"/usr/bin/dunstify
