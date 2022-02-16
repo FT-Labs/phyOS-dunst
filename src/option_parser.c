@@ -30,7 +30,7 @@ static int cmdline_find_option(const char *key);
 int string_parse_enum(const void *data, const char *s, void * ret) {
         struct string_to_enum_def *string_to_enum = (struct string_to_enum_def*)data;
         for (int i = 0; string_to_enum[i].string != NULL; i++) {
-                if (strcmp(s, string_to_enum[i].string) == 0) {
+                if (strcmp(s, string_to_enum[i].string) == 0){
                         *(int*) ret = string_to_enum[i].enum_value;
                         LOG_D("Setting enum to %i (%s)", *(int*) ret, string_to_enum[i].string);
                         return true;
@@ -104,7 +104,7 @@ bool string_parse_int_list(char **s, int **ret, bool allow_empty) {
                 bool success = safe_string_to_int(&tmp[i], s[i]);
                 if (!success) {
                         LOG_W("Invalid int value: '%s'", s[i]);
-                        g_free(tmp);
+                        free(tmp);
                         return false;
                 }
 
@@ -139,6 +139,14 @@ int string_parse_list(const void *data, const char *s, void *ret) {
                         success = string_parse_int_list(arr, &int_arr, false);
                         if (!success)
                                 break;
+
+                        // We can safely assume the length is 2, since the
+                        // string array also had length 2
+                        if (int_arr[0] < 0 || int_arr[1] < 0) {
+                                LOG_W("Offset has to be positive. Correcting...");
+                                int_arr[0] = abs(int_arr[0]);
+                                int_arr[1] = abs(int_arr[1]);
+                        }
 
                         struct position* offset = (struct position*) ret;
                         offset->x = int_arr[0];
@@ -205,6 +213,7 @@ int string_parse_bool(const void *data, const char *s, void *ret)
         return success;
 }
 
+
 int get_setting_id(const char *key, const char *section) {
         int error_code = 0;
         int partial_match_id = -1;
@@ -246,7 +255,8 @@ int string_parse_length(void *ret_in, const char *s) {
         struct length *ret = (struct length*) ret_in;
         int val = 0;
         char *s_stripped = string_strip_brackets(s);
-        if (!s_stripped) {
+        if (!s_stripped)
+        {
                 // single int without brackets
                 bool success = safe_string_to_int(&val, s);
                 if (success && val > 0) {
@@ -434,7 +444,7 @@ void save_settings(struct ini *ini) {
                         const struct entry curr_entry = curr_section.entries[j];
                         int setting_id = get_setting_id(curr_entry.key, curr_section.name);
                         struct setting curr_setting = allowed_settings[setting_id];
-                        if (setting_id < 0) {
+                        if (setting_id < 0){
                                 if (setting_id == -1) {
                                         LOG_W("Setting %s in section %s doesn't exist", curr_entry.key, curr_section.name);
                                 }

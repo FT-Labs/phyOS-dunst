@@ -293,9 +293,11 @@ static struct dimensions calculate_notification_dimensions(struct colored_layout
 
 static struct dimensions calculate_dimensions(GSList *layouts)
 {
-        int layout_count = g_slist_length(layouts);
         struct dimensions dim = { 0 };
         double scale = output->get_scale();
+
+        dim.h += 2 * settings.frame_width;
+        dim.h += (g_slist_length(layouts) - 1) * settings.separator_height;
 
         dim.corner_radius = settings.corner_radius;
 
@@ -315,16 +317,6 @@ static struct dimensions calculate_dimensions(GSList *layouts)
         int max_width = scr->w - settings.offset.x;
         if (dim.w > max_width) {
                 dim.w = max_width;
-        }
-
-        if (settings.gap_size) {
-                int extra_frame_height = layout_count * (2 * settings.frame_width);
-                int extra_gap_height = (layout_count * settings.gap_size) - settings.gap_size;
-                int total_extra_height = extra_frame_height + extra_gap_height;
-                dim.h += total_extra_height;
-        } else {
-                dim.h += 2 * settings.frame_width;
-                dim.h += (layout_count - 1) * settings.separator_height;
         }
 
         return dim;
@@ -496,16 +488,13 @@ static int frame_internal_radius (int r, int w, int h)
  * Create a path on the given cairo context to draw the background of a notification.
  * The top corners will get rounded by `corner_radius`, if `first` is set.
  * Respectably the same for `last` with the bottom corners.
- *
- * TODO: Pass additional frame width information to fix blurry lines due to fractional scaling
- *       X and Y can then be calculated as:  x = round(x*scale) + half_frame_width
  */
-void draw_rounded_rect(cairo_t *c, float x, float y, int width, int height, int corner_radius, double scale, bool first, bool last)
+void draw_rounded_rect(cairo_t *c, int x, int y, int width, int height, int corner_radius, double scale, bool first, bool last)
 {
         width = round(width * scale);
         height = round(height * scale);
-        x *= scale;
-        y *= scale;
+        x = round(x * scale);
+        y = round(y * scale);
         corner_radius = round(corner_radius * scale);
 
         const double degrees = M_PI / 180.0;
@@ -711,12 +700,12 @@ static void render_content(cairo_t *c, struct colored_layout *cl, int width, dou
                 } // else ICON_RIGHT
 
                 cairo_set_source_surface(c, cl->icon, round(image_x * scale), round(image_y * scale));
-                draw_rounded_rect(c, image_x, image_y, image_width, image_height, settings.icon_corner_radius, scale, true, true);
+                draw_rect(c, image_x, image_y, image_width, image_height, scale);
                 cairo_fill(c);
         }
 
         // progress bar positioning
-        if (have_progress_bar(cl)) {
+        if (have_progress_bar(cl)){
                 int progress = MIN(cl->n->progress, 100);
                 unsigned int frame_x = 0;
                 unsigned int frame_width = settings.progress_bar_frame_width,
@@ -743,32 +732,27 @@ static void render_content(cairo_t *c, struct colored_layout *cl, int width, dou
 
                 double half_frame_width = frame_width / 2.0;
 
-                /* Draw progress bar
-                * TODO: Modify draw_rounde_rect to fix blurry lines due to fractional scaling
-                * Note: the bar could be drawn a bit smaller, because the frame is drawn on top 
-                */
-                // left side (fill)
+                // draw progress bar
+                // Note: the bar could be drawn a bit smaller, because the frame is drawn on top
+                // left side
                 cairo_set_source_rgba(c, cl->highlight.r, cl->highlight.g, cl->highlight.b, cl->highlight.a);
-                draw_rounded_rect(c, x_bar_1, frame_y, progress_width_1, progress_height, 
-                        settings.progress_bar_corner_radius, scale, true, true);
+                draw_rect(c, x_bar_1, frame_y, progress_width_1, progress_height, scale);
                 cairo_fill(c);
-                // right side (background)
+                // right side
                 cairo_set_source_rgba(c, cl->bg.r, cl->bg.g, cl->bg.b, cl->bg.a);
-                draw_rounded_rect(c, x_bar_2, frame_y, progress_width_2, progress_height, 
-                        settings.progress_bar_corner_radius, scale, true, true);
-
+                draw_rect(c, x_bar_2, frame_y, progress_width_2, progress_height, scale);
                 cairo_fill(c);
-
                 // border
                 cairo_set_source_rgba(c, cl->frame.r, cl->frame.g, cl->frame.b, cl->frame.a);
+                // TODO draw_rect instead of cairo_rectangle resulted
+                // in blurry lines due to rounding (half_frame_width
+                // can be non-integer)
+                cairo_rectangle(c,
+                                (frame_x + half_frame_width) * scale,
+                                (frame_y + half_frame_width) * scale,
+                                (progress_width - frame_width) * scale,
+                                progress_height * scale);
                 cairo_set_line_width(c, frame_width * scale);
-                draw_rounded_rect(c,
-                                frame_x + half_frame_width,
-                                frame_y + half_frame_width,
-                                progress_width - frame_width,
-                                progress_height,
-                                settings.progress_bar_corner_radius,
-                                scale, true, true);
                 cairo_stroke(c);
         }
 }
@@ -798,18 +782,14 @@ static struct dimensions layout_render(cairo_surface_t *srf,
         if (first)
                 dim.y += settings.frame_width;
 
-        if (last)
-                dim.y += settings.frame_width;
+        if (!last)
+                dim.y += settings.separator_height;
+
 
         if ((2 * settings.padding + cl_h) < settings.height)
                 dim.y += cl_h + 2 * settings.padding;
         else
                 dim.y += settings.height;
-
-        if (settings.gap_size)
-                dim.y += settings.gap_size;
-        else
-                dim.y += settings.separator_height;
 
         cairo_destroy(c);
         cairo_surface_destroy(content);
@@ -830,12 +810,12 @@ void calc_window_pos(const struct screen_info *scr, int width, int height, int *
                 case ORIGIN_TOP_LEFT:
                 case ORIGIN_LEFT_CENTER:
                 case ORIGIN_BOTTOM_LEFT:
-                        *ret_x = scr->x + round(settings.offset.x * draw_get_scale());
+                        *ret_x = scr->x + settings.offset.x;
                         break;
                 case ORIGIN_TOP_RIGHT:
                 case ORIGIN_RIGHT_CENTER:
                 case ORIGIN_BOTTOM_RIGHT:
-                        *ret_x = scr->x + (scr->w - width) - round(settings.offset.x * draw_get_scale());
+                        *ret_x = scr->x + (scr->w - width) - settings.offset.x;
                         break;
                 case ORIGIN_TOP_CENTER:
                 case ORIGIN_CENTER:
@@ -850,12 +830,12 @@ void calc_window_pos(const struct screen_info *scr, int width, int height, int *
                 case ORIGIN_TOP_LEFT:
                 case ORIGIN_TOP_CENTER:
                 case ORIGIN_TOP_RIGHT:
-                        *ret_y = scr->y + round(settings.offset.y * draw_get_scale());
+                        *ret_y = scr->y + settings.offset.y;
                         break;
                 case ORIGIN_BOTTOM_LEFT:
                 case ORIGIN_BOTTOM_CENTER:
                 case ORIGIN_BOTTOM_RIGHT:
-                        *ret_y = scr->y + (scr->h - height) - round(settings.offset.y * draw_get_scale());
+                        *ret_y = scr->y + (scr->h - height) - settings.offset.y;
                         break;
                 case ORIGIN_LEFT_CENTER:
                 case ORIGIN_CENTER:
@@ -870,13 +850,7 @@ void draw(void)
 {
         assert(queues_length_displayed() > 0);
 
-        cairo_t *c = output->win_get_context(win);
-
-        if(c == NULL) {
-                return;
-        }
-
-        GSList *layouts = create_layouts(c);
+        GSList *layouts = create_layouts(output->win_get_context(win));
 
         struct dimensions dim = calculate_dimensions(layouts);
         LOG_D("Window dimensions %ix%i", dim.w, dim.h);
@@ -887,19 +861,12 @@ void draw(void)
                                                                     round(dim.h * scale));
 
         bool first = true;
-        bool last;
         for (GSList *iter = layouts; iter; iter = iter->next) {
 
                 struct colored_layout *cl_this = iter->data;
                 struct colored_layout *cl_next = iter->next ? iter->next->data : NULL;
-                last = !cl_next;
 
-                if (settings.gap_size) {
-                        first = true;
-                        last = true;
-                }
-
-                dim = layout_render(image_surface, cl_this, cl_next, dim, first, last);
+                dim = layout_render(image_surface, cl_this, cl_next, dim, first, !cl_next);
 
                 first = false;
         }

@@ -30,18 +30,12 @@ VALGRIND ?= valgrind
 # You can also use "make WAYLAND=0" to build without wayland
 # WAYLAND ?= 0
 
-# Disable dependency on libnotify. this will remove the ability
-# to easily send notifications using dunstify or notify-send via D-Bus.
-# Do this if you have your own utility to send notifications.
-# Other applications will continue to work, as they use direct D-Bus.
-# DUNSTIFY ?=0
-
 ifneq (0, ${WAYLAND})
 ENABLE_WAYLAND= -DENABLE_WAYLAND
 endif
 
 # flags
-DEFAULT_CPPFLAGS = -Wno-gnu-zero-variadic-macro-arguments -D_DEFAULT_SOURCE -DVERSION=\"${VERSION}\" -DSYSCONFDIR=\"${SYSCONFDIR}\"
+DEFAULT_CPPFLAGS = -D_DEFAULT_SOURCE -DVERSION=\"${VERSION}\" -DSYSCONFDIR=\"${SYSCONFDIR}\"
 DEFAULT_CFLAGS   = -g -std=gnu99 -pedantic -Wall -Wno-overlength-strings -Os ${ENABLE_WAYLAND} ${EXTRA_CFLAGS}
 DEFAULT_LDFLAGS  = -lm -lrt
 
@@ -60,10 +54,8 @@ pkg_config_packs := gio-2.0 \
                     xscrnsaver \
 
 
-ifneq (0,${DUNSTIFY})
 # dunstify also needs libnotify
 pkg_config_packs += libnotify
-endif
 
 ifneq (0,${WAYLAND})
 pkg_config_packs += wayland-client

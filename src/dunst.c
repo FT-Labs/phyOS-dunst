@@ -59,55 +59,47 @@ void wake_up(void)
 {
         // If wake_up is being called before the output has been setup we should
         // return.
-        if (!setup_done) {
+        if (!setup_done)
+        {
                 LOG_D("Ignoring wake up");
                 return;
         }
 
         LOG_D("Waking up");
-        run(GINT_TO_POINTER(1));
+        run(NULL);
 }
 
 static gboolean run(void *data)
 {
         static gint64 next_timeout = 0;
-        static guint next_timeout_id = 0;
-        int reason = GPOINTER_TO_INT(data);
 
-        LOG_D("RUN, reason %i", reason);
-        gint64 now = time_monotonic_now();
+        LOG_D("RUN");
 
         dunst_status(S_FULLSCREEN, output->have_fullscreen_window());
         dunst_status(S_IDLE, output->is_idle());
 
-        queues_update(status, now);
+        queues_update(status);
 
-        if (!queues_length_displayed()) {
+        bool active = queues_length_displayed() > 0;
+
+        if (active) {
+                // Call draw before showing the window to avoid flickering
+                draw();
+                output->win_show(win);
+        } else {
                 output->win_hide(win);
-                return G_SOURCE_REMOVE;
         }
 
-        // Call draw before showing the window to avoid flickering
-        draw();
-        output->win_show(win);
-
-        gint64 timeout_at = queues_get_next_datachange(now);
-        if (timeout_at != -1) {
-                // Previous computations may have taken time, update `now`
-                // This might mean that `timeout_at` is now before `now`, so
-                // we have to make sure that `sleep` is still positive.
-                now = time_monotonic_now();
-                gint64 sleep = timeout_at - now;
-                sleep = MAX(sleep, 1000); // Sleep at least 1ms
+        if (active) {
+                gint64 now = time_monotonic_now();
+                gint64 sleep = queues_get_next_datachange(now);
+                gint64 timeout_at = now + sleep;
 
                 LOG_D("Sleeping for %li ms", sleep/1000);
 
                 if (sleep >= 0) {
-                        if (reason == 0 || next_timeout < now || timeout_at < next_timeout) {
-                                if (next_timeout != 0) {
-                                        g_source_remove(next_timeout_id);
-                                }
-                                next_timeout_id = g_timeout_add(sleep/1000, run, NULL);
+                        if (next_timeout < now || timeout_at < next_timeout) {
+                                g_timeout_add(sleep/1000, run, NULL);
                                 next_timeout = timeout_at;
                         }
                 }

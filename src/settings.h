@@ -127,6 +127,8 @@ struct settings {
         char *browser;
         char **browser_cmd;
         enum vertical_alignment vertical_alignment;
+        int min_icon_size;
+        int max_icon_size;
         char **icon_theme; // experimental
         bool enable_recursive_icon_lookup; // experimental
         bool enable_regex; // experimental
@@ -147,8 +149,6 @@ struct settings {
         int progress_bar_min_width;
         int progress_bar_max_width;
         int progress_bar_frame_width;
-        int progress_bar_corner_radius;
-        int icon_corner_radius;
         bool progress_bar;
         enum zwlr_layer_shell_v1_layer layer;
         enum origin_values origin;
@@ -156,12 +156,11 @@ struct settings {
         int height;
         struct position offset;
         int notification_limit;
-        int gap_size;
 };
 
 extern struct settings settings;
 
-void load_settings(const char * const path);
+void load_settings(char *cmdline_config_path);
 
 #endif
 /* vim: set ft=c tabstop=8 shiftwidth=8 expandtab textwidth=0: */

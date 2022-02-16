@@ -36,7 +36,7 @@ TEST test_queue_length(void)
 
         n = test_notification("n2", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         n = test_notification("n3", 0);
         queues_notification_insert(n);
@@ -113,7 +113,7 @@ TEST test_queue_insert_id_replacement(void)
         ASSERT_EQ(a->id, b->id);
         NOT_LAST(a);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         c = test_notification("c", -1);
         c->id = b->id;
 
@@ -138,7 +138,7 @@ TEST test_queue_notification_close(void)
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
         queues_notification_close(n, REASON_UNDEF);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 1);
         queues_teardown();
 
@@ -148,10 +148,10 @@ TEST test_queue_notification_close(void)
         queues_init();
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 1, 0);
         queues_notification_close(n, REASON_UNDEF);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 1);
         queues_teardown();
 
@@ -170,7 +170,7 @@ TEST test_queue_notification_close_histignore(void)
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
         queues_notification_close(n, REASON_UNDEF);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 0);
         queues_teardown();
 
@@ -181,10 +181,10 @@ TEST test_queue_notification_close_histignore(void)
         queues_init();
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 1, 0);
         queues_notification_close(n, REASON_UNDEF);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 0);
         queues_teardown();
 
@@ -202,7 +202,7 @@ TEST test_queue_notification_skip_display(void)
         queues_init();
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 1);
         queues_teardown();
 
@@ -220,12 +220,12 @@ TEST test_queue_notification_skip_display_redisplayed(void)
         queues_init();
         queues_notification_insert(n);
         QUEUE_LEN_ALL(1, 0, 0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0, 0, 1);
 
         queues_history_pop();
         QUEUE_LEN_ALL(1, 0, 0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_CONTAINSm("A skip display notification should stay in displayed "
                         "queue when it got pulled out of history queue",
                         DISP, n);
@@ -264,7 +264,7 @@ TEST test_queue_notification_skip_display_redisplayed_by_random_id(void) {
         QUEUE_LEN_ALL(notification_buffer_size, 0, 0);
 
         // update notification event
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         QUEUE_LEN_ALL(0, 0, notification_buffer_size);
 
@@ -274,7 +274,7 @@ TEST test_queue_notification_skip_display_redisplayed_by_random_id(void) {
                 if(is_n_popped[i]) {
                         queues_history_pop_by_id(i+1);
                         popped_notification_count++;
-                        queues_update(STATUS_NORMAL, time_monotonic_now());
+                        queues_update(STATUS_NORMAL);
                 }
         }
 
@@ -282,7 +282,7 @@ TEST test_queue_notification_skip_display_redisplayed_by_random_id(void) {
         QUEUE_LEN_ALL(0, popped_notification_count,
                         notification_buffer_size-popped_notification_count);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         // check if any of the notifications got moved
         for(size_t i=0; i<notification_buffer_size; i++) {
                 if(is_n_popped[i]) {
@@ -301,24 +301,6 @@ TEST test_queue_notification_skip_display_redisplayed_by_random_id(void) {
         PASS();
 }
 
-TEST test_queue_history_clear(void)
-{
-        struct notification *n;
-
-        n = test_notification("n", -1);
-
-        queues_init();
-        queues_notification_insert(n);
-        queues_history_push_all();
-
-        QUEUE_LEN_ALL(0, 0, 1);
-        queues_history_clear();
-        QUEUE_LEN_ALL(0, 0, 0);
-        queues_teardown();
-
-        PASS();
-}
-
 TEST test_queue_history_overfull(void)
 {
         settings.history_length = 10;
@@ -330,7 +312,7 @@ TEST test_queue_history_overfull(void)
                 char name[] = { 'n', '0'+i, '\0' }; // n<i>
                 n = test_notification(name, -1);
                 queues_notification_insert(n);
-                queues_update(STATUS_NORMAL, time_monotonic_now());
+                queues_update(STATUS_NORMAL);
                 queues_notification_close(n, REASON_UNDEF);
         }
 
@@ -362,7 +344,7 @@ TEST test_queue_history_pushall(void)
                 n = test_notification(name, -1);
                 queues_notification_insert(n);
         }
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         for (int i = 0; i < 10; i++) {
                 char name[] = { '2', 'n', '0'+i, '\0' }; // 2n<i>
@@ -376,42 +358,6 @@ TEST test_queue_history_pushall(void)
 
         QUEUE_CONTAINS(HIST, n);
         QUEUE_LEN_ALL(0, 0, 5);
-
-        queues_teardown();
-        PASS();
-}
-
-TEST test_queue_history_remove_by_id(void)
-{
-        settings.history_length = 5;
-        settings.indicate_hidden = false;
-        settings.notification_limit = 0;
-
-        queues_init();
-
-        struct notification *n;
-        struct notification *n1 = NULL;
-
-
-        for (int i = 0; i < 5; i++) {
-                char name[] = { 'n', '0'+i, '\0' }; // n<i>
-                n = test_notification(name, -1);
-                queues_notification_insert(n);
-
-                // Store notification at arbitrary position to remove
-                if(i==1) {
-                        n1 = n;
-                }
-        }
-        queues_history_push_all();
-
-        queues_history_remove_by_id(n->id);
-        queues_history_remove_by_id(n1->id);
-
-        QUEUE_LEN_ALL(0, 0, 3);   
-        
-        QUEUE_NOT_CONTAINS(HIST, n);
-        QUEUE_NOT_CONTAINS(HIST, n1);
 
         queues_teardown();
         PASS();
@@ -464,7 +410,7 @@ TEST test_datachange_endless(void)
         struct notification *n = test_notification("n", 0);
 
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         ASSERTm("Age threshold is deactivated and the notification is infinite, there is no wakeup necessary.",
                 queues_get_next_datachange(time_monotonic_now()) < 0);
@@ -475,68 +421,24 @@ TEST test_datachange_endless(void)
 
 TEST test_datachange_endless_agethreshold(void)
 {
-        const gint64 AGE_THRESHOLD = S2US(5);
-        settings.show_age_threshold = AGE_THRESHOLD;
-
-        gint64 cur_time = 0;
-        queues_init();
-
-        struct notification *n = test_notification("n", 0);
-        n->timestamp = cur_time;
-
-        queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, cur_time);
-
-        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than a second away",
-                AGE_THRESHOLD - S2US(1)/2, queues_get_next_datachange(cur_time + AGE_THRESHOLD - S2US(1)), S2US(1)/2);
-
-        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than the age threshold",
-                AGE_THRESHOLD / 2, queues_get_next_datachange(cur_time), AGE_THRESHOLD/2);
-
-        settings.show_age_threshold = S2US(0);
-        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than a second away",
-                S2US(1)/2, queues_get_next_datachange(cur_time), S2US(1)/2);
-
-        queues_teardown();
-        PASS();
-}
-
-TEST test_datachange_agethreshold_at_second(void)
-{
         settings.show_age_threshold = S2US(5);
 
         queues_init();
 
-        const gint64 NOTIF_DELTA = 200;
+        struct notification *n = test_notification("n", 0);
 
-        gint64 cur_time = 500*1000; // T = 0.5s
-        struct notification *n = test_notification("n0", 0);
-        n->timestamp = cur_time;
         queues_notification_insert(n);
+        queues_update(STATUS_NORMAL);
 
-        cur_time += NOTIF_DELTA;
-        n = test_notification("n1", 0);
-        n->timestamp = cur_time;
-        queues_notification_insert(n);
+        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than a second away",
+                S2US(1)/2, queues_get_next_datachange(time_monotonic_now() + S2US(4)), S2US(1)/2);
 
-        queues_update(STATUS_NORMAL, cur_time);
+        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than the age threshold",
+                settings.show_age_threshold/2, queues_get_next_datachange(time_monotonic_now()), settings.show_age_threshold/2);
 
-        // The next update should be when age must be first displayed, at T=5.5s
-        ASSERTm("Age threshold is activated, first wakeup should be at 5.5s",
-                        queues_get_next_datachange(cur_time) == S2US(5) + 500000);
-
-        const int NB_MICROSECS = 6;
-        const gint64 MICROSECS[] = {
-                0, 10, NOTIF_DELTA, NOTIF_DELTA + 1, 124131, S2US(1)-1
-        };
-        for(gint64 base_time = S2US(5); base_time <= S2US(7); base_time += S2US(1)) {
-                for(int musec_id = 0; musec_id < NB_MICROSECS; ++musec_id) {
-                        cur_time = base_time + MICROSECS[musec_id];
-                        gint64 next_wakeup = queues_get_next_datachange(cur_time);
-                        ASSERTm("Age threshold is activated, next wakeup should be at next turn of second",
-                                        next_wakeup == base_time + S2US(1));
-                }
-        }
+        settings.show_age_threshold = S2US(0);
+        ASSERT_IN_RANGEm("Age threshold is activated and the next wakeup should be less than a second away",
+                S2US(1)/2, queues_get_next_datachange(time_monotonic_now()), S2US(1)/2);
 
         queues_teardown();
         PASS();
@@ -546,21 +448,19 @@ TEST test_datachange_queues(void)
 {
         queues_init();
 
-        gint64 cur_time = 0;
         struct notification *n = test_notification("n", 10);
-        n->timestamp = cur_time;
 
         queues_notification_insert(n);
         ASSERTm("The inserted notification is inside the waiting queue, so it should get ignored.",
-               queues_get_next_datachange(cur_time) < 0);
+               queues_get_next_datachange(time_monotonic_now()) < S2US(0));
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         ASSERT_IN_RANGEm("The notification has to get closed in less than its timeout",
-               S2US(10)/2, queues_get_next_datachange(cur_time), S2US(10)/2);
+               S2US(10)/2, queues_get_next_datachange(time_monotonic_now()), S2US(10)/2);
 
         queues_notification_close(n, REASON_UNDEF);
         ASSERTm("The inserted notification is inside the history queue, so it should get ignored",
-               queues_get_next_datachange(cur_time) < 0);
+               queues_get_next_datachange(time_monotonic_now()) < S2US(0));
 
         queues_teardown();
         PASS();
@@ -570,29 +470,23 @@ TEST test_datachange_ttl(void)
 {
         struct notification *n;
         queues_init();
-        gint64 cur_time = 0;
 
         n = test_notification("n1", 15);
-        n->timestamp = cur_time;
 
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, cur_time);
+        queues_update(STATUS_NORMAL);
         ASSERT_IN_RANGEm("The notification has to get closed in less than its timeout.",
-               n->timeout/2, queues_get_next_datachange(cur_time), n->timeout/2);
+               n->timeout/2, queues_get_next_datachange(time_monotonic_now()), n->timeout/2);
 
-        cur_time += 500; // microseconds
         n = test_notification("n2", 10);
-        n->timestamp = cur_time;
 
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, cur_time);
+        queues_update(STATUS_NORMAL);
         ASSERT_IN_RANGEm("The timeout of the second notification has to get used as sleep time now.",
-               cur_time + n->timeout/2, queues_get_next_datachange(cur_time), n->timeout/2);
+               n->timeout/2, queues_get_next_datachange(time_monotonic_now()), n->timeout/2);
 
-        cur_time += S2US(10);
-
-        ASSERT_EQm("The notification already timed out. You have to answer with the current time.",
-               cur_time, queues_get_next_datachange(cur_time));
+        ASSERT_EQm("The notification already timed out. You have to answer with 0.",
+               S2US(0), queues_get_next_datachange(time_monotonic_now() + S2US(10)));
 
         queues_teardown();
         PASS();
@@ -617,7 +511,7 @@ TEST test_queue_stacking(void)
         NOT_LAST(n1);
 
         notification_ref(n2);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         queues_notification_insert(n3);
         QUEUE_LEN_ALL(0, 1, 0);
         NOT_LAST(n2);
@@ -648,7 +542,7 @@ TEST test_queue_stacktag(void)
         NOT_LAST(n1);
 
         notification_ref(n2);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         queues_notification_insert(n3);
         QUEUE_LEN_ALL(0, 1, 0);
         NOT_LAST(n2);
@@ -681,7 +575,7 @@ TEST test_queue_different_stacktag(void)
         NOT_LAST(n1);
 
         queues_notification_insert(n3);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         printf("queue %i\n",g_queue_get_length(QUEUE(HIST)));
         QUEUE_LEN_ALL(0, 2, 0);
 
@@ -709,7 +603,7 @@ TEST test_queue_stacktag_different_appid(void)
         queues_notification_insert(n2);
 
         notification_ref(n2);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         queues_notification_insert(n3);
         QUEUE_LEN_ALL(0, 2, 0);
         NOT_LAST(n2);
@@ -734,13 +628,13 @@ TEST test_queue_timeout(void)
         queues_notification_insert(n2);
         queues_notification_insert(n3);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         // hacky way to shift time
         n1->start -= S2US(11);
         n2->start -= S2US(11);
         n3->start -= S2US(11);
-        queues_update(STATUS_IDLE, time_monotonic_now());
+        queues_update(STATUS_IDLE);
 
         QUEUE_LEN_ALL(0,2,1);
         QUEUE_CONTAINS(HIST, n3);
@@ -748,7 +642,7 @@ TEST test_queue_timeout(void)
         // hacky way to shift time
         n1->start -= S2US(11);
         n2->start -= S2US(11);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         QUEUE_LEN_ALL(0,1,2);
         QUEUE_CONTAINS(DISP, n1);
@@ -777,17 +671,17 @@ TEST test_queues_update_fullscreen(void)
         queues_notification_insert(n_dela);
         queues_notification_insert(n_push);
 
-        queues_update(STATUS_FS, time_monotonic_now());
+        queues_update(STATUS_FS);
         QUEUE_CONTAINS(DISP, n_show);
         QUEUE_CONTAINS(WAIT, n_dela);
         QUEUE_CONTAINS(WAIT, n_push);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_CONTAINS(DISP, n_show);
         QUEUE_CONTAINS(DISP, n_dela);
         QUEUE_CONTAINS(DISP, n_push);
 
-        queues_update(STATUS_FS, time_monotonic_now());
+        queues_update(STATUS_FS);
         QUEUE_CONTAINS(DISP, n_show);
         QUEUE_CONTAINS(DISP, n_dela);
         QUEUE_CONTAINS(WAIT, n_push);
@@ -812,13 +706,13 @@ TEST test_queues_update_paused(void)
 
         QUEUE_LEN_ALL(3,0,0);
 
-        queues_update(STATUS_PAUSE, time_monotonic_now());
+        queues_update(STATUS_PAUSE);
         QUEUE_LEN_ALL(3,0,0);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0,3,0);
 
-        queues_update(STATUS_PAUSE, time_monotonic_now());
+        queues_update(STATUS_PAUSE);
         QUEUE_LEN_ALL(3,0,0);
 
         queues_teardown();
@@ -858,7 +752,7 @@ TEST test_queues_update_seeping(void)
         queues_notification_insert(nl5);
 
         QUEUE_LEN_ALL(5,0,0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0,5,0);
 
         queues_notification_insert(nc1);
@@ -868,7 +762,7 @@ TEST test_queues_update_seeping(void)
         queues_notification_insert(nc5);
 
         QUEUE_LEN_ALL(5,5,0);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(5,5,0);
 
         QUEUE_CONTAINS(DISP, nc1);
@@ -904,15 +798,15 @@ TEST test_queues_update_xmore(void)
         queues_notification_insert(n2);
         queues_notification_insert(n3);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0,3,0);
 
         queues_notification_insert(n4);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(0,4,0);
 
         queues_notification_insert(n5);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
         QUEUE_LEN_ALL(2,3,0);
 
         queues_teardown();
@@ -939,12 +833,12 @@ TEST test_queues_update_seep_showlowurg(void)
 
         queues_notification_insert(n1);
         queues_notification_insert(n2);
-        queues_update(STATUS_FS, time_monotonic_now());
+        queues_update(STATUS_FS);
         QUEUE_LEN_ALL(2,0,0);
 
         queues_notification_insert(n3);
 
-        queues_update(STATUS_FS, time_monotonic_now());
+        queues_update(STATUS_FS);
 
         QUEUE_LEN_ALL(2,1,0);
         QUEUE_CONTAINS(WAIT, n1);
@@ -963,10 +857,10 @@ TEST test_queues_timeout_before_paused(void)
         n = test_notification("n", 10);
 
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         n->start -= S2US(11);
-        queues_update(STATUS_PAUSE, time_monotonic_now());
+        queues_update(STATUS_PAUSE);
 
         QUEUE_LEN_ALL(0,0,1);
 
@@ -1012,7 +906,7 @@ TEST test_queue_get_history(void)
         n->skip_display = true;
         queues_notification_insert(n);
 
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         QUEUE_LEN_ALL(0, 0, 3);
 
@@ -1046,24 +940,24 @@ TEST test_queue_no_sort_and_pause(void)
 
         n = test_notification("n0", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         n = test_notification("n1", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         n = test_notification("n2", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_PAUSE, time_monotonic_now());
+        queues_update(STATUS_PAUSE);
 
         n = test_notification("n3", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_PAUSE, time_monotonic_now());
-        /* queues_update(STATUS_NORMAL, time_monotonic_now()); */
+        queues_update(STATUS_PAUSE);
+        /* queues_update(STATUS_NORMAL); */
 
         n = test_notification("n4", 0);
         queues_notification_insert(n);
-        queues_update(STATUS_NORMAL, time_monotonic_now());
+        queues_update(STATUS_NORMAL);
 
         QUEUE_LEN_ALL(0, 5, 0);
 
@@ -1093,13 +987,10 @@ SUITE(suite_queues)
         RUN_TEST(test_datachange_beginning_empty);
         RUN_TEST(test_datachange_endless);
         RUN_TEST(test_datachange_endless_agethreshold);
-        RUN_TEST(test_datachange_agethreshold_at_second);
         RUN_TEST(test_datachange_queues);
         RUN_TEST(test_datachange_ttl);
-        RUN_TEST(test_queue_history_clear);
         RUN_TEST(test_queue_history_overfull);
         RUN_TEST(test_queue_history_pushall);
-        RUN_TEST(test_queue_history_remove_by_id);
         RUN_TEST(test_queue_init);
         RUN_TEST(test_queue_insert_id_invalid);
         RUN_TEST(test_queue_insert_id_replacement);

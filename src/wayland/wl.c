@@ -135,27 +135,17 @@ static void create_output( struct wl_output *wl_output, uint32_t global_name) {
                 LOG_E("allocation failed");
                 return;
         }
-
-        bool recreate_surface = false;
         static int number = 0;
         LOG_I("New output found - id %i", number);
         output->global_name = global_name;
         output->wl_output = wl_output;
         output->scale = 1;
         output->fullscreen = false;
-
-        recreate_surface = wl_list_empty(&ctx.outputs);
-
         wl_list_insert(&ctx.outputs, &output->link);
 
         wl_output_set_user_data(wl_output, output);
         wl_output_add_listener(wl_output, &output_listener, output);
         number++;
-
-        if (recreate_surface) {
-                // We had no outputs, force our surface to redraw
-                set_dirty(ctx.surface);
-        }
 }
 
 static void destroy_output(struct dunst_output *output) {
@@ -290,19 +280,13 @@ static void send_frame();
 static void layer_surface_handle_configure(void *data,
                 struct zwlr_layer_surface_v1 *surface,
                 uint32_t serial, uint32_t width, uint32_t height) {
-        zwlr_layer_surface_v1_ack_configure(surface, serial);
-
-        if (ctx.configured &&
-                        ctx.width == (int32_t) width &&
-                        ctx.height == (int32_t) height) {
-                wl_surface_commit(ctx.surface);
-                return;
-        }
-
         ctx.configured = true;
         ctx.width = width;
         ctx.height = height;
 
+        // not needed as it is set somewhere else
+        /* zwlr_layer_surface_v1_set_size(surface, width, height);  */
+        zwlr_layer_surface_v1_ack_configure(surface, serial);
         send_frame();
 }
 
@@ -355,7 +339,7 @@ static const struct org_kde_kwin_idle_timeout_listener idle_timeout_listener = {
 };
 
 static void add_seat_to_idle_handler(struct wl_seat *seat) {
-        if (!ctx.idle_handler) {
+        if (!ctx.idle_handler){
                 return;
         }
         if (settings.idle_threshold > 0) {
@@ -605,11 +589,6 @@ static void schedule_frame_and_commit();
 static void send_frame() {
         int scale = wl_get_scale();
 
-        if (wl_list_empty(&ctx.outputs)) {
-                ctx.dirty = false;
-                return;
-        }
-
         struct dunst_output *output = get_configured_output();
         int height = ctx.cur_dim.h;
         int width = ctx.cur_dim.w;
@@ -801,10 +780,6 @@ void wl_display_surface(cairo_surface_t *srf, window winptr, const struct dimens
         ctx.current_buffer = get_next_buffer(ctx.shm, ctx.buffers,
                         dim->w * scale, dim->h * scale);
 
-        if(ctx.current_buffer == NULL) {
-                return;
-        }
-
         cairo_t *c = ctx.current_buffer->cairo;
         cairo_save(c);
         cairo_set_source_surface(c, srf, 0, 0);
@@ -821,11 +796,6 @@ void wl_display_surface(cairo_surface_t *srf, window winptr, const struct dimens
 cairo_t* wl_win_get_context(window winptr) {
         struct window_wl *win = (struct window_wl*)winptr;
         ctx.current_buffer = get_next_buffer(ctx.shm, ctx.buffers, 500, 500);
-
-        if(ctx.current_buffer == NULL) {
-                return NULL;
-        }
-
         win->c_surface = ctx.current_buffer->surface;
         win->c_ctx = ctx.current_buffer->cairo;
         return win->c_ctx;

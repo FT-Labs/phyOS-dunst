@@ -137,9 +137,11 @@ static struct notification *notification_load_icon_with_scaling(int min_icon_siz
 
         GVariant *rawIcon = notification_setup_raw_image(path);
 
-        n->min_icon_size = min_icon_size;
-        n->max_icon_size = max_icon_size;
+        settings.min_icon_size = min_icon_size;
+        settings.max_icon_size = max_icon_size;
         notification_icon_replace_data(n, rawIcon);
+        settings.min_icon_size = 0;
+        settings.max_icon_size = 0;
 
         g_variant_unref(rawIcon);
         g_free(path);

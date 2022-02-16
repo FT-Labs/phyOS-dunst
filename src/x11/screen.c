@@ -243,7 +243,7 @@ bool window_is_fullscreen(Window window)
         ASSERT_OR_RET(window, false);
 
         Atom has_wm_state = XInternAtom(xctx.dpy, "_NET_WM_STATE", True);
-        if (has_wm_state == None) {
+        if (has_wm_state == None){
                 return false;
         }
 
@@ -389,12 +389,12 @@ sc_cleanup:
  */
 static Window get_focused_window(void)
 {
-        Window focused, root = RootWindow(xctx.dpy, DefaultScreen(xctx.dpy));
+        Window focused;
         int ignored;
 
         XGetInputFocus(xctx.dpy, &focused, &ignored);
 
-        if (focused == None || focused == PointerRoot || focused == root)
+        if (focused == None || focused == PointerRoot)
                 focused = 0;
         return focused;
 }

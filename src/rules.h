@@ -26,11 +26,9 @@ struct rule {
         char *stack_tag;
         char *desktop_entry;
         int msg_urgency;
-        gint64 match_dbus_timeout;
 
         /* modifying */
         gint64 timeout; // this has to be the first modifying rule
-        gint64 override_dbus_timeout;
         enum urgency urgency;
         char *action_name;
         enum markup_mode markup;
@@ -43,8 +41,7 @@ struct rule {
         int alignment;
         int hide_text;
         int icon_position;
-        int min_icon_size;
-        int max_icon_size;
+        int set_icon_size;
         char *new_icon;
         char *fg;
         char *bg;

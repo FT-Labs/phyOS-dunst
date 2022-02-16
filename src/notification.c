@@ -299,7 +299,7 @@ void notification_unref(struct notification *n)
 
         notification_private_free(n->priv);
 
-        if (n->script_count > 0) {
+        if (n->script_count > 0){
                 g_free(n->scripts);
         }
 
@@ -337,11 +337,10 @@ void notification_icon_replace_path(struct notification *n, const char *new_icon
         g_clear_pointer(&n->icon_id, g_free);
 
         g_free(n->icon_path);
-        n->icon_path = get_path_from_icon_name(new_icon, n->min_icon_size);
+        n->icon_path = get_path_from_icon_name(new_icon, n->icon_size);
         if (n->icon_path) {
                 GdkPixbuf *pixbuf = get_pixbuf_from_file(n->icon_path,
-                                n->min_icon_size, n->max_icon_size,
-                                draw_get_scale());
+                                n->icon_size, draw_get_scale());
                 if (pixbuf) {
                         n->icon = gdk_pixbuf_to_cairo_surface(pixbuf);
                         g_object_unref(pixbuf);
@@ -361,7 +360,7 @@ void notification_icon_replace_data(struct notification *n, GVariant *new_icon)
         g_clear_pointer(&n->icon_id, g_free);
 
         GdkPixbuf *icon = icon_get_for_data(new_icon, &n->icon_id,
-                        draw_get_scale(), n->min_icon_size, n->max_icon_size);
+                        draw_get_scale(), n->icon_size);
         n->icon = gdk_pixbuf_to_cairo_surface(icon);
         if (icon)
                 g_object_unref(icon);
@@ -415,7 +414,6 @@ struct notification *notification_create(void)
 
         n->urgency = URG_NORM;
         n->timeout = -1;
-        n->dbus_timeout = -1;
 
         n->transient = false;
         n->progress = -1;
@@ -425,9 +423,7 @@ struct notification *notification_create(void)
         n->progress_bar_alignment = PANGO_ALIGN_CENTER;
         n->hide_text = false;
         n->icon_position = ICON_LEFT;
-        n->min_icon_size = 32;
-        n->max_icon_size = 32;
-        n->receiving_raw_icon = false;
+        n->icon_size = 32;
 
         n->script_run = false;
         n->dbus_valid = false;
@@ -510,11 +506,6 @@ void notification_init(struct notification *n)
         /* UPDATE derived fields */
         notification_extract_urls(n);
         notification_format_message(n);
-
-        /* Update timeout: dbus_timeout has priority over timeout */
-        if (n->dbus_timeout >= 0)
-                n->timeout = n->dbus_timeout;
-
 }
 
 static void notification_format_message(struct notification *n)
@@ -672,14 +663,13 @@ void notification_update_text_to_render(struct notification *n)
 
         /* print age */
         gint64 hours, minutes, seconds;
-        // Timestamp is floored to the second for display purposes -- see queues.c
-        gint64 t_delta = time_monotonic_now() - (n->timestamp - n->timestamp % S2US(1));
+        gint64 t_delta = time_monotonic_now() - n->timestamp;
 
         if (settings.show_age_threshold >= 0
             && t_delta >= settings.show_age_threshold) {
-                hours   = US2S(t_delta) / 3600;
-                minutes = US2S(t_delta) / 60 % 60;
-                seconds = US2S(t_delta) % 60;
+                hours   = t_delta / G_USEC_PER_SEC / 3600;
+                minutes = t_delta / G_USEC_PER_SEC / 60 % 60;
+                seconds = t_delta / G_USEC_PER_SEC % 60;
 
                 char *new_buf;
                 if (hours > 0) {

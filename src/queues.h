@@ -108,11 +108,6 @@ void queues_notification_close_id(int id, enum reason reason);
 void queues_notification_close(struct notification *n, enum reason reason);
 
 /**
- * Removes all notifications from history
- */
-void queues_history_clear(void);
-
-/**
  * Pushes the latest notification of history to the displayed queue
  * and removes it from history
  */
@@ -138,11 +133,6 @@ void queues_history_push(struct notification *n);
 void queues_history_push_all(void);
 
 /**
- * Removes an notification identified by the given id from the history 
- */
-void queues_history_remove_by_id(unsigned int id);
-
-/**
  * Move inserted notifications from waiting queue to displayed queue
  * and show them. In displayed queue, the amount of elements is limited
  * to the amount set via queues_displayed_limit()
@@ -151,9 +141,8 @@ void queues_history_remove_by_id(unsigned int id);
  *       (which closes old and shows new notifications on screen)
  *
  * @param status the current status of dunst
- * @param time the current time
  */
-void queues_update(struct dunst_status status, gint64 time);
+void queues_update(struct dunst_status status);
 
 /**
  * Calculate the distance to the next event, when an element in the
@@ -161,7 +150,7 @@ void queues_update(struct dunst_status status, gint64 time);
  *
  * @param time the current time
  *
- * @return the timestamp of the next event in the queue, which forces
+ * @return the distance to the next event in the queue, which forces
  *         an update visible to the user. This may be:
  *             - notification hits timeout
  *             - notification's age second changes

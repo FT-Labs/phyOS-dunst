@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <stdio.h>
+#include <malloc.h>
 #include <unistd.h>
 #include <assert.h>
 
@@ -15,9 +16,14 @@ int icon_themes_count = 0;
 int *default_themes_index = NULL;
 int default_themes_count = 0;
 
+static bool is_readable_file(const char *filename)
+{
+        return (access(filename, R_OK) != -1);
+}
+
 int get_icon_theme(char *name) {
         for (int i = 0; i < icon_themes_count; i++) {
-                if (STR_EQ(icon_themes[i].subdir_theme, name)) {
+                if (STR_EQ(icon_themes[i].subdir_theme, name)){
                         return i;
                 }
         }
@@ -49,12 +55,12 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
         fclose(theme_index);
         if (ini->section_count == 0) {
                 finish_ini(ini);
-                g_free(ini);
+                free(ini);
                 return -1;
         }
 
         icon_themes_count++;
-        icon_themes = g_realloc(icon_themes, icon_themes_count * sizeof(struct icon_theme));
+        icon_themes = realloc(icon_themes, icon_themes_count * sizeof(struct icon_theme));
         int index = icon_themes_count - 1;
         icon_themes[index].name = g_strdup(section_get_value(ini, &ini->sections[0], "Name"));
         icon_themes[index].location = g_strdup(icon_dir);
@@ -64,7 +70,7 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
 
         // load theme directories
         icon_themes[index].dirs_count = ini->section_count - 1;
-        icon_themes[index].dirs = g_malloc0_n(icon_themes[index].dirs_count, sizeof(struct icon_theme_dir));
+        icon_themes[index].dirs = calloc(icon_themes[index].dirs_count, sizeof(struct icon_theme_dir));
 
         for (int i = 0; i < icon_themes[index].dirs_count; i++) {
                 struct section section = ini->sections[i+1];
@@ -77,7 +83,7 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
                 // read optional scale, defaulting to 1
                 const char *scale_str = section_get_value(ini, &section, "Scale");
                 icon_themes[index].dirs[i].scale = 1;
-                if (scale_str) {
+                if (scale_str){
                         safe_string_to_int(&icon_themes[index].dirs[i].scale, scale_str);
                 }
 
@@ -111,7 +117,7 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
                 } else if (icon_themes[index].dirs[i].type == THEME_DIR_THRESHOLD) {
                         icon_themes[index].dirs[i].threshold = 2;
                         const char *threshold = section_get_value(ini, &section, "Threshold");
-                        if (threshold) {
+                        if (threshold){
                                 safe_string_to_int(&icon_themes[index].dirs[i].threshold, threshold);
                         }
                 }
@@ -119,20 +125,21 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
 
 
         // load inherited themes
-        if (!STR_EQ(icon_themes[index].name, "Hicolor")) {
+        if (!STR_EQ(icon_themes[index].name, "Hicolor"))
+        {
                 char **inherits = string_to_array(get_value(ini, "Icon Theme", "Inherits"), ",");
                 icon_themes[index].inherits_count = string_array_length(inherits);
                 LOG_D("Theme has %i inherited themes\n", icon_themes[index].inherits_count);
                 if (icon_themes[index].inherits_count <= 0) {
                         // set fallback theme to hicolor if there are no inherits
                         g_strfreev(inherits);
-                        inherits = g_malloc0_n(2, sizeof(char*));
+                        inherits = calloc(2, sizeof(char*));
                         inherits[0] = g_strdup("hicolor");
                         inherits[1] = NULL;
                         icon_themes[index].inherits_count = 1;
                 }
 
-                icon_themes[index].inherits_index = g_malloc0_n(icon_themes[index].inherits_count, sizeof(int));
+                icon_themes[index].inherits_index = calloc(icon_themes[index].inherits_count, sizeof(int));
 
                 for (int i = 0; inherits[i] != NULL; i++) {
                         LOG_D("inherits: %s\n", inherits[i]);
@@ -150,12 +157,37 @@ int load_icon_theme_from_dir(const char *icon_dir, const char *subdir_theme) {
 
 
         finish_ini(ini);
-        g_free(ini);
+        free(ini);
         return index;
 }
 
 // a list of directories where icon themes might be located
 GPtrArray *theme_path = NULL;
+
+/**
+ * Adds the contents of env_name with subdir to the array, interpreting the
+ * environment variable as a colon-separated list of paths. If the environment
+ * variable doesn't exist, alternative is used.
+ *
+ * @param arr The array to add to
+ * @param env_name The name of the environment variable that contains a
+ * colon-separated list of paths.
+ * @param subdir The subdirectory to add a the end of each path in env_name
+ * @param alternative A colon-separated list of paths to use as alternative
+ * when the environment variable doesn't exits.
+ */
+void add_paths_from_env(GPtrArray *arr, char *env_name, char *subdir, char *alternative) {
+        const char *xdg_data_dirs = g_getenv("XDG_DATA_DIRS");
+        if (!xdg_data_dirs)
+                xdg_data_dirs = alternative;
+
+        char **xdg_data_dirs_arr = string_to_array(xdg_data_dirs, ":");
+        for (int i = 0; xdg_data_dirs_arr[i] != NULL; i++) {
+                char *loc = g_build_filename(xdg_data_dirs_arr[i], subdir, NULL);
+                g_ptr_array_add(theme_path, loc);
+        }
+        g_strfreev(xdg_data_dirs_arr);
+}
 
 void get_theme_path() {
         theme_path = g_ptr_array_new_full(5, g_free);
@@ -192,7 +224,7 @@ int load_icon_theme(char *name) {
 void finish_icon_theme_dir(struct icon_theme_dir *dir) {
         if (!dir)
                 return;
-        g_free(dir->name);
+        free(dir->name);
 }
 
 void finish_icon_theme(struct icon_theme *theme) {
@@ -201,22 +233,22 @@ void finish_icon_theme(struct icon_theme *theme) {
         for (int i = 0; i < theme->dirs_count; i++) {
                 finish_icon_theme_dir(&theme->dirs[i]);
         }
-        g_free(theme->name);
-        g_free(theme->location);
-        g_free(theme->subdir_theme);
-        g_free(theme->inherits_index);
-        g_free(theme->dirs);
+        free(theme->name);
+        free(theme->location);
+        free(theme->subdir_theme);
+        free(theme->inherits_index);
+        free(theme->dirs);
 }
 
 void free_all_themes() {
-        g_free(default_themes_index);
+        free(default_themes_index);
         default_themes_index = NULL;
         default_themes_count = 0;
         LOG_D("Finishing %i themes\n", icon_themes_count);
         for (int i = 0; i < icon_themes_count; i++) {
                 finish_icon_theme(&icon_themes[i]);
         }
-        g_free(icon_themes);
+        free(icon_themes);
         icon_themes_count = 0;
         icon_themes = NULL;
         g_ptr_array_unref(theme_path);
@@ -235,7 +267,7 @@ void add_default_theme(int theme_index) {
                 return;
         }
         default_themes_count++;
-        default_themes_index = g_realloc(default_themes_index,
+        default_themes_index = realloc(default_themes_index,
                         default_themes_count * sizeof(int));
         default_themes_index[default_themes_count - 1] = theme_index;
 }
