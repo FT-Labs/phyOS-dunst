@@ -1,0 +1,55 @@
+#General comment
+[bool]
+	booltrue = true #This is a test inline comment
+	booltrue_capital = TRUE
+
+	#This is a comment
+	boolfalse = false
+	boolfalse_capital = FALSE
+
+	boolyes = yes
+	boolyes_capital = YES
+
+	boolno = no
+	boolno_capital = NO
+
+	boolbin0 = 0
+	boolbin1 = 1
+
+	boolinvalid = invalidbool
+
+[string]
+	simple = A simple string
+	quoted = "A quoted string"
+	quoted_with_quotes = "A string "with quotes""
+	unquoted_with_quotes = A" string with quotes"
+	quoted_comment = "String with a" # comment
+	unquoted_comment = String with a # comment
+	color_comment = "#ffffff" # comment
+
+[list]
+	simple = A,simple,list
+	spaces = A, list, with, spaces
+	multiword = A list, with, multiword entries
+	quoted = "A, quoted, list"
+	quoted_with_quotes = "A, list, "with quotes""
+	unquoted_with_quotes = A, list, "with quotes"
+	quoted_comment = "List, with, a" # comment
+	unquoted_comment = List, with, a # comment
+
+[path]
+	expand_tilde    = ~/.path/to/tilde
+
+[int]
+	simple = 5
+	negative = -10
+	decimal = 2.71828
+	leading_zeroes = 007
+	multi_char = 1024
+
+[double]
+	simple = 1
+	decimal = 1.5
+	negative = -1.2
+	zeroes = 0.005
+	long = 3.141592653589793

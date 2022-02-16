@@ -1,0 +1,151 @@
+=head1 NAME
+
+dunst - A customizable and lightweight notification-daemon
+
+=head1 SYNOPSIS
+
+dunst [-conf file] [-verbosity v] [-print] [--startup-notification]
+
+=head1 DESCRIPTION
+
+Dunst is a highly configurable and lightweight notification daemon.
+
+=head2 Autostarting dunst
+
+On most installations dunst should be able to automatically be started by D-Bus
+when a notification is sent. This is not recommended when multiple notification
+deamons are installed, because D-Bus will not know which one to start.
+Other ways of autostarting dunst include starting dunst with your desktop
+environment or window manager's autostart functionality or via the provided
+systemd service.
+
+=head1 COMMAND LINE OPTIONS
+
+=over 4
+
+=item B<-h/--help>
+
+List all command line flags
+
+=item B<-conf/-config file>
+
+Use alternative config file.
+This disables the search for other config files.
+If it cannot be opened Dunst will issue a warning and fall back on its internal
+defaults.
+(Hint: `dunst -conf - </dev/null` can be used to enforce the defaults, i.e. for
+testing)
+
+=item B<-v/--version>
+
+Print version information.
+
+=item B<-verbosity> (values: 'crit', 'warn', 'mesg', 'info', 'debug' default 'mesg')
+
+Do not display log messages, which have lower precedence than specified
+verbosity. This won't affect printing notifications on the terminal. Use
+the '-print' option for this.
+
+=item B<-print>
+
+Print notifications to stdout. This might be useful for logging, setting up
+rules or using the output in other scripts.
+
+=item B<--startup_notification> (values: [true/false], default: false)
+
+Display a notification on startup.
+
+=back
+
+=head1 CONFIGURATION
+
+A default configuration file is included (usually ##SYSCONFDIR##/dunst/dunstrc)
+and serves as the least important configuration file. Note: this was previously
+/usr/share/dunst/dunstrc. You can edit this file to change the system-wide
+defaults or copy it to a more important location to override its settings. See
+the FILES section for more details on where dunst searches for its
+configuration files and how settings get applied.
+
+See dunst(5) for all possible settings.
+
+=head2 NOTIFY-SEND
+
+dunst is able to get different colors for a message via notify-send.
+In order to do that you have to add a hint via the -h option.
+The progress value can be set with a hint, too.
+
+=over 4
+
+=item notify-send -h string:fgcolor:#ff4444
+
+=item notify-send -h string:bgcolor:#4444ff -h string:fgcolor:#ff4444 -h string:frcolor:#44ff44
+
+=item notify-send -h int:value:42 "Working ..."
+
+=back
+
+=head1 MISCELLANEOUS
+
+Dunst can be paused via the `dunstctl set-paused true` command. To unpause dunst use
+`dunstctl set-paused false`.
+Another way is to send SIGUSR1 and SIGUSR2 to pause and unpause
+respectively. Pausing using dunstctl is recommended over using signals, because
+the meaning of the signals is not be stable and might change in the future.
+
+When paused dunst will not display any notifications but keep all notifications
+in a queue.  This can for example be wrapped around a screen locker (i3lock,
+slock) to prevent flickering of notifications through the lock and to read all
+missed notifications after returning to the computer.
+
+=head1 FILES
+
+These are the base directories dunst searches for configuration files in
+descending order of imortance:
+
+=over 4
+
+$XDG_CONFIG_HOME ($HOME/.config if unset or empty)
+
+$XDG_CONFIG_DIRS (:-separated list of base directories in descending order
+of importance; ##SYSCONFDIR## if unset or empty)
+
+=back
+
+Dunst will search these directories for the following relative path:
+
+=over 4
+
+dunst/dunstrc
+
+=back
+
+All settings from all files get applied. Settings in more important files
+override those in less important ones. Settings not present in more imortant
+files are taken from a less important one or from the internal defaults if they
+are not found in any file.
+
+=over 4
+
+=item This is where the default (least important) config file is located:
+
+##SYSCONFDIR##/dunst/dunstrc
+
+=back
+
+=head1 AUTHORS
+
+Written by Sascha Kruse <knopwob@googlemail.com>
+
+=head1 REPORTING BUGS
+
+Bugs and suggestions should be reported on GitHub at https://github.com/dunst-project/dunst/issues
+
+=head1 COPYRIGHT
+
+Copyright 2013 Sascha Kruse and contributors (see LICENSE for licensing information)
+
+If you feel that copyrights are violated, please send me an email.
+
+=head1 SEE ALSO
+
+dunst(5), dunstctl(1), dmenu(1), notify-send(1)

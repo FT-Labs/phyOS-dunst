@@ -1,0 +1,313 @@
+===================================================================================
+Release Notes For v1.7.0
+===================================================================================
+
+This release was long overdue. There have been a lot of changes in the mean
+time. For a full list of changes, see the changelog.
+
+For users:
+
+The wayland support of v1.6.0 was already pretty good, but this release added
+fullscreen detection and improved the stability.
+
+This release added a few improvements to the wayland support. Dunst now
+automatically falls back to X11 when the wayland compositor doesn't support the
+neccesary protocols.
+
+For maintainers:
+
+Previously the readme said dunst depended on GTK3, which hasn't been the case
+for a while. Make sure that GTK3 is not included as a dependency.
+
+The default program for opening URL's in notifications has been changed from
+firefox to xdg-open.
+
+The Makefile and dunstrc searching has been significantly changed to be more
+compliant with the XDG spec. The default config directory, `SYSCONFDIR`, has
+been changed from "/etc" to "${PREFIX}/etc/xdg/". To change back to the old
+behaviour, run make with: `make SYSCONFDIR="/etc"` (make sure to pass the same
+variables to make in subsequent calls). Take a look at the "Make parameters"
+section of the readme and the FILES section of the man page for more details.
+
+===================================================================================
+Release Notes For v1.6.0
+===================================================================================
+
+For users:
+
+At long last, dunst has native wayland support. On startup dunst will now
+autodetect the display environment it's run on and use the appropriate backend
+(X11 or wayland).
+Additionally, support for progress bars has been added when the 'value' hint is
+used. Try it out with `notify-send -h int:value:70 'Progress bars!'`
+
+Last but most importantly, support for the
+`DUNST_COMMAND_{PAUSE,RESUME,TOGGLE}` has been removed as they could
+potentially be used to DoS dunst. `dunstctl` has been available as a direct
+replacement for the use-case they served since last release. See
+https://github.com/dunst-project/dunst/pull/830 for details
+
+For maintainers:
+
+Dunst now depends on the wayland libraries and (optionally) on the
+wayland-protocols package. A global configuration file is now installed by
+default in `/etc/dunst/dunstrc`
+
+
+===================================================================================
+Release Notes For v1.5.0
+===================================================================================
+
+For users:
+
+The most important update from the previous version is the addition of the
+dunstctl command and dunstify utility, a drop-in notify-send replacement (which
+existed for a while, but wasn't installed by default).
+The internal keyboard shortcut support in dunst is now considered deprecated
+and should be replaced by dunstctl calls. You can use the configuration of your
+WM or DE to bind these to shortcuts of your choice.
+
+Additionally, another long requested feature implemented is RGBA/transparency
+support. Given an active compositor you can now add an optional transparency
+component to all colors in #RRGGBBAA format.
+
+For maintainers:
+
+As mentioned above, two new binaries are now installed by default, dunstctl and dunstify.
+libnotify has been added as a dependency as it's used internally by dunstify.
+
+===================================================================================
+Release Notes For v1.4.0
+===================================================================================
+
+There has been significant internal refactoring since the last release which
+might have introduced some new bugs. Be sure to report anything you find.
+However, as usual, there has been a lot of bug-fixing and a lot of new features
+have been added as well. Look at the full changelog for a breakdown.
+Some important points to note:
+
+For users:
+
+* Behavioural changes
+
+  In the previous release we introduced support for clients to mark
+  notifications as 'transient'. Transient notifications used to 1) bypass
+  idle_threshold and 2) not be saved in history.
+  The latter behaviour has been disabled by default and can be re-created using
+  rules if necessary. Transient notifications will now only bypass
+  idle_threshold.
+
+  Additionally, to be compliant with the notification spec, the notification
+  summary no longer accepts markup.
+
+For maintainers:
+
+* Dependency on libxdg-basedir has been removed
+
+===================================================================================
+Release Notes For v1.3.0
+===================================================================================
+
+Version 1.3 is supposed to be fully backwards compatible with 1.2.
+
+For users:
+
+* Behavioural changes
+
+  Dunst respects the timeout with millisecond accuracy now. Notifications with
+  a one second timeout are not shown up to three seconds.
+  Additionally you can specify timeout values in milliseconds, seconds, minutes,
+  hours or days using the ms, s, h, or d suffix in the config value
+  respectively.
+
+  Transient notifications time out ignoring the `idle_threshold` setting and are not
+  saved in history. This can be overridden with a rule containing `set_transient = no`.
+  In the same vein there is the `match_transient` condition to match transient
+  notifications via rules.
+
+  A prefixed tilde (`~/`) in path settings (browser, dmenu, script) is interpreted as the
+  home folder of the user.
+
+* Configuration Options
+
+  `icon_folders` got deprecated and renamed to `icon_path`. `icon_folders` is still
+  supported, but will get removed in future.
+
+  The option `ellipsize` got introduced. It controls where to ellipsize the text of
+  an overlong notification if `word_wrap = no`.
+
+For maintainers:
+
+* Dependencies
+
+  The GTK3+ dependency got removed. Instead of this gdk-pixbuf is required
+  explicitly. This had been a transient dependency before.
+
+  In the Makefile, libxrandr is now specified to require version 1.5 or newer.
+  The dependency on libxrandr >= 1.5 is not new, Dunst 1.2.0 required it too
+  but there was no active check for it.
+
+* Installation process
+
+  The internals of dunst's make installation process have slightly changed. The
+  install routine won't install the service files for DBus and systemd in a hardcoded
+  subdirectory of $PREFIX. It'll now query the `dbus-1` and `systemd` pkg-config
+  packages for those paths and will put it there.
+
+  To overwrite the pkg-config values, you can manually specify another path.
+  Use `SERVICEDIR_(DBUS|SYSTEMD)` vars as parameters to your make calls.
+
+  For all introduced variables, see [the README.md].
+
+* Portability
+
+  GNU-specific functions have been disabled to make dunst portable to nongnu libc's.
+
+For a full list of changes see [CHANGELOG.md].
+
+===================================================================================
+Release Notes For v1.2.0
+===================================================================================
+
+After about 3 years of inactivity, dunst is back under active development.
+
+Version 1.2 is supposed to be fully backwards compatible with 1.1 but due to
+the number of changes and the time since the last release there may be some
+overlooked breakages. If one is found it should be reported to the bug tracker.
+
+For users:
+
+* Markup
+    The `allow_markup` setting has been deprecated in favour of `markup` which
+    is a multi-value setting that can be used to control much more accurately
+    how markup in notifications should be handled. Currently it only supports
+    `no`, `strip` and `full` as values but it is planned to be expanded soon.
+
+    To preserve backwards compatibility, `allow_markup` is still supported but
+    users are encouraged to update their configuration files since it will be
+    removed after a few major releases.
+
+* DPI handling
+    The DPI value used is now retrieved from the `Xft.dpi` X resource if
+    available. If not, the default value 96 will be used.
+
+    Additionally, as an experiment a per-monitor dpi setting, which tries to
+    calculate an acceptable dpi values for each monitor, has been added to the
+    experimental section of the configuration file.
+
+* RandR and Xinerama
+    Dunst switched from using the Xinerama extension to provide multi-monitor
+    support to using the more modern RandR extension. While this change won't
+    affect the majority of users, some legacy drivers do not support RandR. In
+    that case, the `force_xinerama` option was added as a way to fall back to
+    the old method.
+
+    The downside of forcing Xinerama to be used is that dunst won't be able to
+    detect when a monitor is added or removed meaning that follow mode might
+    break if the screen layout changes.
+
+* Frame settings
+    All the settings in the frame section of the configuration file have been
+    deprecated and have been moved into the global section. The `color` and `size`
+    settings became `frame_color` and `frame_size` respectively. As with
+    `allow_markup`, the old format still works but it'll be removed in one of the
+    next major releases.
+
+* Deprecation of urgency-specific command line flags
+    The urgency specific command line flags (`-li, -ni, -ci, -lf, -nf, -cf, -lb,
+    -nb, -cb, -lfr, -nfr, -cfr, -lto, -nto, -cto`) have been deprecated with no
+    plan for a replacement. If you rely on them please respond to issue #328 on
+    the bug tracker with your use case.
+
+For maintainers:
+
+* The project homepage has been changed to https://dunst-project.org
+* The main repository has been changed to https://github.com/dunst-project/dunst
+
+* Dependency changes:
+ - Dependency on libraries that were unused in the code but were mentioned as
+   dependencies has been dropped. Dunst no longer depends on: libfreetype,
+   libxft and libxext.
+ - Added dependency on libxradnr and libgtk2.0.
+
+For a full list of changes see CHANGELOG.md.
+
+===================================================================================
+Release Notes For v1.0.0
+===================================================================================
+
+PACKAGE MAINTAINERS:
+    There are new dependencies introduced with this version:
+        *glib
+        *pango/cairo
+
+* The drawing backend was moved from Xlib to Cairo/Pango.
+    This change requires some user intervention since Pango
+    uses different font strings. For example "Monospace-12"
+    becomes "Monospace 12". Font sizes might also get interpreted
+    differently.
+
+* Markup
+    Markup within the notification can be interpreted by pango.
+    Examples are <i>italic</i> and <b>bold</b>. If the Markup
+    can't be parsed by pango, the tags are stripped from the
+    notification and the text is displayed as plain text. An error
+    message gets printed to stdout describing why the markup could
+    not be parsed.
+
+    To make use of markup the option allow_markup must be set in dunstrc.
+    If this option is not set, dunst falls back to the old behaviour
+    (stripping all tags from the text and display plain text).
+
+* Actions are now supported.
+    If a client adds an action to a notification this gets indicated
+    by an (A) infront of the notification. In this case the
+    context menu shortcut can be used to invoke this action.
+
+* Indicator for URLs.
+    If dunst detects an URL within the notification this gets indicated
+    by an (U) infront of the notification. As with actions the URL can
+    be opened with the context menu shortcut. (This requires the browser
+    option to be set in the dunstrc).
+
+* dunstify ( a drop-in replacement for notify-send)
+    Since notify-send lacks some features I need to for testing, I've
+    written dunstify. It supports the same option as notify-send + The
+    abillity to print the id of the notification to stdout and to replace
+    or close existing notifications.
+
+    example:
+   id=$(dunstify -p "Replace" "this should get replaced after the sleep")
+    sleep 5
+    dunstify -r $id "replacement"
+
+    see dunstify --help for additional info.
+
+    Since dunstify depends on non-public parts of libnotify it may break
+    on every other libnotify version than that version that I use.
+    Because of this it does not get build and installed by default.
+    It can be build with "make dunstify". An installation target does
+    not exist.
+
+    Please don't open bug reports when dunstify doesn't work with your
+    version of libnotify
+
+===================================================================================
+Release Notes For v0.4.0
+===================================================================================
+
+Since dunst has lost its ability to show notifications independend of
+dbus/libnotify a long time ago I think it is time that the describtion reflects
+that. Even though this breaks the acronym. So if you're a packager please update
+the package description to read something like:
+
+short:
+"Dunst - a dmenu-ish notification-daemon"
+
+long:
+"Dunst is a highly configurable and lightweight notification-daemon"
+
+Release Tarballs are now available at:
+http://www.knopwob.org/public/dunst-release/
+
+For more information have a look at the CHANGELOG and the new options in dunstrc.

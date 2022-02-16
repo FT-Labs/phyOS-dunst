@@ -1,0 +1,101 @@
+# Ignore musls' weird error
+{
+   musl_alpine_libc
+   Memcheck:Free
+   fun:free
+   obj:/lib/ld-musl-x86_64.so.1
+}
+
+# rsvg_error_handle_close got fixed in
+# - GNOME/librsvg@7bf1014
+# (2018-11-12, first tags: v2.45.0, v2.44.9)
+# but the release has to seep into the distros
+{
+   rsvg_error_handle_close
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_error_new_valist
+   fun:g_set_error
+   obj:*/librsvg-2.so*
+   fun:rsvg_handle_close
+   obj:*/loaders/libpixbufloader-svg.so
+   fun:gdk_pixbuf_loader_close
+   fun:gdk_pixbuf_get_file_info
+   fun:get_pixbuf_from_file
+   ...
+}
+
+# same as above, but as occurs in CI environment
+{
+   rsvg_error_handle_close2
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_error_new_valist
+   fun:g_set_error
+   obj:*/librsvg-2.so*
+   obj:*/librsvg-2.so*
+   obj:*/loaders/libpixbufloader-svg.so
+   obj:*/libgdk_pixbuf-2.0.so*
+   fun:gdk_pixbuf_loader_close
+   fun:gdk_pixbuf_get_file_info
+   fun:get_pixbuf_from_file
+   ...
+}
+
+# Some new in ArchLinux
+{
+   rsvg_rust_handle_close
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:rsvg_rust_handle_close
+   obj:*/loaders/libpixbufloader-svg.so
+   ...
+   fun:gdk_pixbuf_new_from_file
+   ...
+}
+
+# rsvg_error_writehandler got fixed in
+# - GNOME/librsvg@7b4cc9b
+# (2018-11-12, first tags: v2.45.0, v2.44.9)
+# but the release has to seep into the distros
+{
+   rsvg_error_writehandler
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_error_new_valist
+   fun:g_set_error
+   obj:*/librsvg-2.so*
+   fun:rsvg_handle_write
+   obj:*/loaders/libpixbufloader-svg.so
+   obj:*/libgdk_pixbuf-2.0.so*
+   fun:gdk_pixbuf_loader_close
+   fun:gdk_pixbuf_get_file_info
+   fun:get_pixbuf_from_file
+   ...
+}
+
+# a librsvg memoryleak that shows up in arch, but not in the CI environment
+{
+   <librsvg-arch>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   obj:/usr/lib/librsvg-2.so.2.48.0
+   ...
+   fun:rsvg_handle_close
+   obj:/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so
+   obj:/usr/lib/libgdk_pixbuf-2.0.so.0.4200.6
+   fun:gdk_pixbuf_new_from_file
+   ...
+}
