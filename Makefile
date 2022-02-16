@@ -107,11 +107,11 @@ doc: docs/dunst.1 docs/dunst.5 docs/dunstctl.1
 # Can't dedup this as we need to explicitly provide the name and title text to
 # pod2man :(
 docs/dunst.1: docs/dunst.1.pod
-	${SED} "s|##SYSCONFDIR##|${SYSCONFDIR}|" $< | ${POD2MAN} --name=dunst -c "Dunst Reference" --section=1 --release=${VERSION} > $@
+	${SED} "s|##SYSCONFDIR##|${SYSCONFDIR}|" $< | ${POD2MAN} --name=dunst -c "Dunst Reference" --section=1 - > $@
 docs/dunst.5: docs/dunst.5.pod
-	${POD2MAN} --name=dunst -c "Dunst Reference" --section=5 --release=${VERSION} $< > $@
+	${POD2MAN} --name=dunst -c "Dunst Reference" --section=5 $< > $@
 docs/dunstctl.1: docs/dunstctl.pod
-	${POD2MAN} --name=dunstctl -c "dunstctl reference" --section=1 --release=${VERSION} $< > $@
+	${POD2MAN} --name=dunstctl -c "dunstctl reference" --section=1  $< > $@
 
 doc-doxygen:
 	${DOXYGEN} docs/internal/Doxyfile
