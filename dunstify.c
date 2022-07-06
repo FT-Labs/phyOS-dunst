@@ -363,3 +363,5 @@ int main(int argc, char *argv[])
 
     die(0);
 }
+
+/* vim: set ft=c tabstop=8 shiftwidth=8 expandtab textwidth=0: */

@@ -145,8 +145,7 @@ TEST test_notification_at(void)
         ASSERT(result != NULL);
         ASSERT(result == bottom_notification);
 
-        queues_teardown();
-        g_slist_free(notifications);
+        g_slist_free_full(notifications, free_dummy_notification);
         PASS();
 }
 

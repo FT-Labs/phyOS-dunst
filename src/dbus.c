@@ -504,6 +504,7 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
 
         GVariantIter i;
         g_variant_iter_init(&i, parameters);
+
         g_variant_iter_next(&i, "s", &n->appname);
         g_variant_iter_next(&i, "u", &n->id);
         g_variant_iter_next(&i, "s", &n->iconname);
@@ -513,7 +514,7 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         g_variant_iter_next(&i, "@a{?*}", &hints);
         g_variant_iter_next(&i, "i", &timeout);
 
-        // Change notification position
+        /* Change notification position */
         if (!strcmp(n->appname, "top-center"))
                 settings.origin = ORIGIN_TOP_CENTER;
         else if (!strcmp(n->appname, "top-left"))
@@ -531,6 +532,7 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         else
                 settings.origin = ORIGIN_TOP_RIGHT;
 
+
         gsize num = 0;
         while (actions[num]) {
                 if (actions[num+1]) {
@@ -545,6 +547,7 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         }
 
         GVariant *dict_value;
+        GVariant *icon_value = NULL;
 
         // First process the items that can be filtered on
         if ((dict_value = g_variant_lookup_value(hints, "urgency", G_VARIANT_TYPE_BYTE))) {
@@ -617,14 +620,29 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         if (!dict_value)
                 dict_value = g_variant_lookup_value(hints, "icon_data", G_VARIANT_TYPE("(iiibiiay)"));
         if (dict_value) {
-                notification_icon_replace_data(n, dict_value);
-                g_variant_unref(dict_value);
+                // Signal that the notification is still waiting for a raw
+                // icon. It cannot be set now, because min_icon_size and
+                // max_icon_size aren't known yet. It cannot be set later,
+                // because it has to be overwritten by the new_icon rule.
+                n->receiving_raw_icon = true;
+                icon_value = dict_value;
+                dict_value = NULL;
         }
+
+        // Set the dbus timeout
+        if (timeout >= 0)
+                n->dbus_timeout = ((gint64)timeout) * 1000;
 
         // All attributes that have to be set before initializations are set,
         // so we can initialize the notification. This applies all rules that
         // are defined and applies the formatting to the message.
         notification_init(n);
+
+        if (icon_value) {
+                if (n->receiving_raw_icon)
+                        notification_icon_replace_data(n, icon_value);
+                g_variant_unref(icon_value);
+        }
 
         // Modify these values after the notification is initialized and all rules are applied.
         if ((dict_value = g_variant_lookup_value(hints, "fgcolor", G_VARIANT_TYPE_STRING))) {
@@ -650,9 +668,6 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
                 g_variant_unref(dict_value);
         }
 
-        if (timeout >= 0)
-                n->timeout = ((gint64)timeout) * 1000;
-
         g_variant_unref(hints);
         g_variant_type_free(required_type);
         g_free(actions); // the strv is only a shallow copy
@@ -675,7 +690,6 @@ static void dbus_cb_Notify(
                                 "Cannot decode notification!");
                 return;
         }
-
 
         int id = queues_notification_insert(n);
 
