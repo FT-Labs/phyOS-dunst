@@ -21,6 +21,8 @@ void rule_apply(struct rule *r, struct notification *n)
 {
         if (r->timeout != -1)
                 n->timeout = r->timeout;
+        if (r->override_dbus_timeout != -1)
+                n->dbus_timeout = r->override_dbus_timeout;
         if (r->urgency != URG_NONE)
                 n->urgency = r->urgency;
         if (r->fullscreen != FS_NULL)
@@ -41,6 +43,10 @@ void rule_apply(struct rule *r, struct notification *n)
                 n->hide_text = r->hide_text;
         if (r->progress_bar_alignment != -1)
                 n->progress_bar_alignment = r->progress_bar_alignment;
+        if (r->min_icon_size != -1)
+                n->min_icon_size = r->min_icon_size;
+        if (r->max_icon_size != -1)
+                n->max_icon_size = r->max_icon_size;
         if (r->action_name) {
                 g_free(n->default_action_name);
                 n->default_action_name = g_strdup(r->action_name);
@@ -53,8 +59,6 @@ void rule_apply(struct rule *r, struct notification *n)
                 n->markup = r->markup;
         if (r->icon_position != -1)
                 n->icon_position = r->icon_position;
-        if (r->set_icon_size > 0)
-                n->icon_size = r->set_icon_size;
         if (r->fg) {
                 g_free(n->colors.fg);
                 n->colors.fg = g_strdup(r->fg);
@@ -83,6 +87,7 @@ void rule_apply(struct rule *r, struct notification *n)
                 // separate variable is needed to track if the icon is
                 // replaced, like in 86cbc1d34bb0f551461dbd466cd9e4860ae01817.
                 notification_icon_replace_path(n, r->new_icon);
+                n->receiving_raw_icon = false;
         }
         if (r->script){
                 n->scripts = g_renew(const char*,n->scripts,n->script_count + 1);
@@ -190,6 +195,7 @@ bool rule_matches_notification(struct rule *r, struct notification *n)
 {
         return  r->enabled
                 && (r->msg_urgency == URG_NONE || r->msg_urgency == n->urgency)
+                && (r->match_dbus_timeout < 0 || (r->match_dbus_timeout == n->dbus_timeout))
                 && (r->match_transient == -1 || (r->match_transient == n->transient))
                 && rule_field_matches_string(n->appname,        r->appname)
                 && rule_field_matches_string(n->desktop_entry,  r->desktop_entry)
