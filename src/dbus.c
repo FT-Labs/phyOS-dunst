@@ -25,7 +25,7 @@
 
 #define PROPERTIES_IFAC "org.freedesktop.DBus.Properties"
 
-GDBusConnection *dbus_conn;
+GDBusConnection *dbus_conn = NULL;
 
 static GDBusNodeInfo *introspection_data = NULL;
 
@@ -77,12 +77,16 @@ static const char *introspection_xml =
     "        <method name=\"NotificationAction\">"
     "            <arg name=\"number\"     type=\"u\"/>"
     "        </method>"
+    "        <method name=\"NotificationClearHistory\"/>"
     "        <method name=\"NotificationCloseLast\" />"
     "        <method name=\"NotificationCloseAll\"  />"
     "        <method name=\"NotificationListHistory\">"
     "            <arg direction=\"out\" name=\"notifications\"   type=\"aa{sv}\"/>"
     "        </method>"
     "        <method name=\"NotificationPopHistory\">"
+    "            <arg direction=\"in\"  name=\"id\"              type=\"u\"/>"
+    "        </method>"
+    "        <method name=\"NotificationRemoveFromHistory\">"
     "            <arg direction=\"in\"  name=\"id\"              type=\"u\"/>"
     "        </method>"
     "        <method name=\"NotificationShow\"      />"
@@ -170,23 +174,27 @@ void dbus_cb_fdn_methods(GDBusConnection *connection,
 
 DBUS_METHOD(dunst_ContextMenuCall);
 DBUS_METHOD(dunst_NotificationAction);
+DBUS_METHOD(dunst_NotificationClearHistory);
 DBUS_METHOD(dunst_NotificationCloseAll);
 DBUS_METHOD(dunst_NotificationCloseLast);
 DBUS_METHOD(dunst_NotificationListHistory);
 DBUS_METHOD(dunst_NotificationPopHistory);
+DBUS_METHOD(dunst_NotificationRemoveFromHistory);
 DBUS_METHOD(dunst_NotificationShow);
 DBUS_METHOD(dunst_RuleEnable);
 DBUS_METHOD(dunst_Ping);
 static struct dbus_method methods_dunst[] = {
-        {"ContextMenuCall",           dbus_cb_dunst_ContextMenuCall},
-        {"NotificationAction",        dbus_cb_dunst_NotificationAction},
-        {"NotificationCloseAll",      dbus_cb_dunst_NotificationCloseAll},
-        {"NotificationCloseLast",     dbus_cb_dunst_NotificationCloseLast},
-        {"NotificationListHistory",   dbus_cb_dunst_NotificationListHistory},
-        {"NotificationPopHistory",    dbus_cb_dunst_NotificationPopHistory},
-        {"NotificationShow",          dbus_cb_dunst_NotificationShow},
-        {"Ping",                      dbus_cb_dunst_Ping},
-        {"RuleEnable",                dbus_cb_dunst_RuleEnable},
+        {"ContextMenuCall",                     dbus_cb_dunst_ContextMenuCall},
+        {"NotificationAction",                  dbus_cb_dunst_NotificationAction},
+        {"NotificationClearHistory",            dbus_cb_dunst_NotificationClearHistory},
+        {"NotificationCloseAll",                dbus_cb_dunst_NotificationCloseAll},
+        {"NotificationCloseLast",               dbus_cb_dunst_NotificationCloseLast},
+        {"NotificationListHistory",             dbus_cb_dunst_NotificationListHistory},
+        {"NotificationPopHistory",              dbus_cb_dunst_NotificationPopHistory},
+        {"NotificationRemoveFromHistory",       dbus_cb_dunst_NotificationRemoveFromHistory},
+        {"NotificationShow",                    dbus_cb_dunst_NotificationShow},
+        {"Ping",                                dbus_cb_dunst_Ping},
+        {"RuleEnable",                          dbus_cb_dunst_RuleEnable},
 };
 
 void dbus_cb_dunst_methods(GDBusConnection *connection,
@@ -251,6 +259,19 @@ static void dbus_cb_dunst_NotificationAction(GDBusConnection *connection,
                 LOG_D("CMD: Calling action for notification %s", n->summary);
                 notification_do_action(n);
         }
+
+        g_dbus_method_invocation_return_value(invocation, NULL);
+        g_dbus_connection_flush(connection, NULL, NULL, NULL);
+}
+
+static void dbus_cb_dunst_NotificationClearHistory(GDBusConnection *connection,
+                                                const gchar *sender,
+                                                GVariant *parameters,
+                                                GDBusMethodInvocation *invocation)
+{
+        LOG_D("CMD: Clearing the history");
+        queues_history_clear();
+        wake_up();
 
         g_dbus_method_invocation_return_value(invocation, NULL);
         g_dbus_connection_flush(connection, NULL, NULL, NULL);
@@ -397,6 +418,23 @@ static void dbus_cb_dunst_NotificationPopHistory(GDBusConnection *connection,
         g_dbus_connection_flush(connection, NULL, NULL, NULL);
 }
 
+static void dbus_cb_dunst_NotificationRemoveFromHistory(GDBusConnection *connection,
+                                                        const gchar *sender,
+                                                        GVariant *parameters,
+                                                        GDBusMethodInvocation *invocation)
+{
+        LOG_D("CMD: Removing notification from history");
+
+        guint32 id;
+        g_variant_get(parameters, "(u)", &id);
+
+        queues_history_remove_by_id(id);
+        wake_up();
+
+        g_dbus_method_invocation_return_value(invocation, NULL);
+        g_dbus_connection_flush(connection, NULL, NULL, NULL);
+}
+
 static void dbus_cb_dunst_RuleEnable(GDBusConnection *connection,
                                      const gchar *sender,
                                      GVariant *parameters,
@@ -513,25 +551,6 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         g_variant_iter_next(&i, "^a&s", &actions);
         g_variant_iter_next(&i, "@a{?*}", &hints);
         g_variant_iter_next(&i, "i", &timeout);
-
-        /* Change notification position */
-        if (!strcmp(n->appname, "top-center"))
-                settings.origin = ORIGIN_TOP_CENTER;
-        else if (!strcmp(n->appname, "top-left"))
-                settings.origin = ORIGIN_TOP_LEFT;
-        else if (!strcmp(n->appname, "bottom-right"))
-                settings.origin = ORIGIN_BOTTOM_RIGHT;
-        else if (!strcmp(n->appname, "bottom-center"))
-                settings.origin = ORIGIN_BOTTOM_CENTER;
-        else if (!strcmp(n->appname, "bottom-left"))
-                settings.origin = ORIGIN_BOTTOM_LEFT;
-        else if (!strcmp(n->appname, "left-center"))
-                settings.origin = ORIGIN_LEFT_CENTER;
-        else if (!strcmp(n->appname, "center"))
-                settings.origin = ORIGIN_CENTER;
-        else
-                settings.origin = ORIGIN_TOP_RIGHT;
-
 
         gsize num = 0;
         while (actions[num]) {
@@ -673,6 +692,73 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         g_free(actions); // the strv is only a shallow copy
 
         return n;
+}
+
+void signal_length_propertieschanged()
+{
+
+        static unsigned int last_displayed = 0;
+        static unsigned int last_history = 0;
+        static unsigned int last_waiting = 0;
+
+        if (!dbus_conn)
+                return;
+
+        GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE_VARDICT);
+        GVariantBuilder *invalidated_builder = g_variant_builder_new(G_VARIANT_TYPE_STRING_ARRAY);
+
+        unsigned int displayed = queues_length_displayed();
+        unsigned int history = queues_length_history();
+        unsigned int waiting = queues_length_waiting();
+        bool properties_changed = false;
+
+        if (last_displayed != displayed) {
+                g_variant_builder_add(builder,
+                                      "{sv}",
+                                      "displayedLength", g_variant_new_uint32(displayed));
+                last_displayed = displayed;
+                properties_changed = true;
+        }
+
+        if (last_history != history) {
+                g_variant_builder_add(builder,
+                                      "{sv}",
+                                      "historyLength", g_variant_new_uint32(history));
+                last_history = history;
+                properties_changed = true;
+        }
+        if (last_waiting != waiting) {
+                g_variant_builder_add(builder,
+                                      "{sv}",
+                                      "waitingLength", g_variant_new_uint32(waiting));
+                last_waiting = waiting;
+                properties_changed = true;
+        }
+
+        if (properties_changed) {
+                GVariant *body = g_variant_new("(sa{sv}as)",
+                                               DUNST_IFAC,
+                                               builder,
+                                               invalidated_builder);
+
+                GError *err = NULL;
+
+                g_dbus_connection_emit_signal(dbus_conn,
+                                              NULL,
+                                              FDN_PATH,
+                                              PROPERTIES_IFAC,
+                                              "PropertiesChanged",
+                                              body,
+                                              &err);
+                                
+                if (err) {
+                        LOG_W("Unable to emit signal: %s", err->message);
+                        g_error_free(err);
+                }
+        }
+
+        g_clear_pointer(&builder, g_variant_builder_unref);
+        g_clear_pointer(&invalidated_builder, g_variant_builder_unref);
 }
 
 static void dbus_cb_Notify(
@@ -867,21 +953,24 @@ gboolean dbus_cb_dunst_Properties_Set(GDBusConnection *connection,
                 dunst_status(S_RUNNING, !g_variant_get_boolean(value));
                 wake_up();
 
-                GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE_ARRAY);
-                GVariantBuilder *invalidated_builder = g_variant_builder_new(G_VARIANT_TYPE("as"));
+                GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE_VARDICT);
+                GVariantBuilder *invalidated_builder = g_variant_builder_new(G_VARIANT_TYPE_STRING_ARRAY);
                 g_variant_builder_add(builder,
                                       "{sv}",
                                       "paused", g_variant_new_boolean(g_variant_get_boolean(value)));
                 g_dbus_connection_emit_signal(connection,
                                               NULL,
                                               object_path,
-                                              "org.freedesktop.DBus.Properties",
+                                              PROPERTIES_IFAC,
                                               "PropertiesChanged",
                                               g_variant_new("(sa{sv}as)",
                                                             interface_name,
                                                             builder,
                                                             invalidated_builder),
                                               NULL);
+
+                g_clear_pointer(&builder, g_variant_builder_unref);
+                g_clear_pointer(&invalidated_builder, g_variant_builder_unref);
                 return true;
         }
 
@@ -1095,6 +1184,7 @@ void dbus_teardown(int owner_id)
         g_clear_pointer(&introspection_data, g_dbus_node_info_unref);
 
         g_bus_unown_name(owner_id);
+        dbus_conn = NULL;
 }
 
 /* vim: set ft=c tabstop=8 shiftwidth=8 expandtab textwidth=0: */
