@@ -552,6 +552,24 @@ static struct notification *dbus_message_to_notification(const gchar *sender, GV
         g_variant_iter_next(&i, "@a{?*}", &hints);
         g_variant_iter_next(&i, "i", &timeout);
 
+                /* Change notification position */
+        if (!strcmp(n->appname, "top-center"))
+                settings.origin = ORIGIN_TOP_CENTER;
+        else if (!strcmp(n->appname, "top-left"))
+                settings.origin = ORIGIN_TOP_LEFT;
+        else if (!strcmp(n->appname, "bottom-right"))
+                settings.origin = ORIGIN_BOTTOM_RIGHT;
+        else if (!strcmp(n->appname, "bottom-center"))
+                settings.origin = ORIGIN_BOTTOM_CENTER;
+        else if (!strcmp(n->appname, "bottom-left"))
+                settings.origin = ORIGIN_BOTTOM_LEFT;
+        else if (!strcmp(n->appname, "left-center"))
+                settings.origin = ORIGIN_LEFT_CENTER;
+        else if (!strcmp(n->appname, "center"))
+                settings.origin = ORIGIN_CENTER;
+        else
+                settings.origin = ORIGIN_TOP_RIGHT;
+
         gsize num = 0;
         while (actions[num]) {
                 if (actions[num+1]) {
@@ -750,7 +768,7 @@ void signal_length_propertieschanged()
                                               "PropertiesChanged",
                                               body,
                                               &err);
-                                
+
                 if (err) {
                         LOG_W("Unable to emit signal: %s", err->message);
                         g_error_free(err);
