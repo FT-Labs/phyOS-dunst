@@ -136,6 +136,12 @@ gboolean quit_signal(gpointer data)
         return G_SOURCE_CONTINUE;
 }
 
+gboolean xrdb_reload_signal(gpointer data)
+{
+        loadxrdb();
+        return G_SOURCE_CONTINUE;
+}
+
 static void teardown(void)
 {
         regex_teardown();
@@ -189,10 +195,12 @@ int dunst_main(int argc, char *argv[])
 
         mainloop = g_main_loop_new(NULL, FALSE);
 
+        loadxrdb();
         draw_setup();
 
         guint pause_src = g_unix_signal_add(SIGUSR1, pause_signal, NULL);
         guint unpause_src = g_unix_signal_add(SIGUSR2, unpause_signal, NULL);
+        guint xrdb_reload_src = g_unix_signal_add(SIGHUP, xrdb_reload_signal, NULL);
 
         /* register SIGINT/SIGTERM handler for
          * graceful termination */
@@ -222,6 +230,7 @@ int dunst_main(int argc, char *argv[])
         /* remove signal handler watches */
         g_source_remove(pause_src);
         g_source_remove(unpause_src);
+        g_source_remove(xrdb_reload_src);
         g_source_remove(term_src);
         g_source_remove(int_src);
 

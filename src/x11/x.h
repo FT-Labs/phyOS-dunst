@@ -49,6 +49,8 @@ bool x_is_idle(void);
 bool x_setup(void);
 void x_free(void);
 
+void loadxrdb(void);
+
 double x_get_scale(void);
 #endif
 /* vim: set ft=c tabstop=8 shiftwidth=8 expandtab textwidth=0: */
