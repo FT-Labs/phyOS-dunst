@@ -69,6 +69,71 @@ static int x_shortcut_tear_down_error_handler(void);
 static void setopacity(Window win, unsigned long opacity);
 static void x_handle_click(XEvent ev);
 
+
+static int
+loadxrdbcolor(XrmDatabase xrdb, char **dest, unsigned int *alpha, char *resource)
+{
+        XrmValue value;
+        char *type;
+        unsigned int rgb, a;
+
+        if (XrmGetResource(xrdb, resource, NULL, &type, &value) != True)
+                return 0;
+
+        if (value.addr == NULL)
+                return 0;
+
+        strcpy(*dest, value.addr);
+        switch(sscanf(value.addr, "#%6x%2x", &rgb, &a)) {
+                case 1:
+                        sprintf(*dest, "#%.6x", rgb);
+                        return 1;
+                case 2:
+                        sprintf(*dest, "#%.6x", rgb);
+                        *alpha = a;
+                        return 1;
+        }
+        return 1;
+}
+
+void
+loadxrdb(void)
+{
+        Display *display;
+        char * resm;
+        XrmDatabase xrdb;
+        unsigned int unused_alpha;
+
+        display = XOpenDisplay(NULL);
+
+        if (display != NULL) {
+                resm = XResourceManagerString(display);
+
+                if (resm != NULL) {
+                        xrdb = XrmGetStringDatabase(resm);
+
+                        if (xrdb != NULL) {
+                                loadxrdbcolor(xrdb, &settings.colors_low.fg, &unused_alpha, "dunst.colors.low.fg");
+                                loadxrdbcolor(xrdb, &settings.colors_low.bg, &unused_alpha, "dunst.colors.low.bg");
+                                loadxrdbcolor(xrdb, &settings.colors_low.frame, &unused_alpha, "dunst.colors.low.frame");
+                                loadxrdbcolor(xrdb, &settings.colors_low.highlight, &unused_alpha, "dunst.colors.low.highlight");
+
+                                loadxrdbcolor(xrdb, &settings.colors_norm.fg, &unused_alpha, "dunst.colors.norm.fg");
+                                loadxrdbcolor(xrdb, &settings.colors_norm.bg, &unused_alpha, "dunst.colors.norm.bg");
+                                loadxrdbcolor(xrdb, &settings.colors_norm.frame, &unused_alpha, "dunst.colors.norm.frame");
+                                loadxrdbcolor(xrdb, &settings.colors_norm.highlight, &unused_alpha, "dunst.colors.norm.highlight");
+
+                                loadxrdbcolor(xrdb, &settings.colors_crit.fg, &unused_alpha, "dunst.colors.crit.fg");
+                                loadxrdbcolor(xrdb, &settings.colors_crit.bg, &unused_alpha, "dunst.colors.crit.bg");
+                                loadxrdbcolor(xrdb, &settings.colors_crit.frame, &unused_alpha, "dunst.colors.crit.frame");
+                                loadxrdbcolor(xrdb, &settings.colors_crit.highlight, &unused_alpha, "dunst.colors.crit.highlight");
+                        }
+                }
+        }
+
+        XCloseDisplay(display);
+}
+
 static void x_win_move(window winptr, int x, int y, int width, int height)
 {
         struct window_x11 *win = (struct window_x11*)winptr;
