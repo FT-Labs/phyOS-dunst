@@ -301,24 +301,6 @@ TEST test_queue_notification_skip_display_redisplayed_by_random_id(void) {
         PASS();
 }
 
-TEST test_queue_history_clear(void)
-{
-        struct notification *n;
-
-        n = test_notification("n", -1);
-
-        queues_init();
-        queues_notification_insert(n);
-        queues_history_push_all();
-
-        QUEUE_LEN_ALL(0, 0, 1);
-        queues_history_clear();
-        QUEUE_LEN_ALL(0, 0, 0);
-        queues_teardown();
-
-        PASS();
-}
-
 TEST test_queue_history_overfull(void)
 {
         settings.history_length = 10;
@@ -376,42 +358,6 @@ TEST test_queue_history_pushall(void)
 
         QUEUE_CONTAINS(HIST, n);
         QUEUE_LEN_ALL(0, 0, 5);
-
-        queues_teardown();
-        PASS();
-}
-
-TEST test_queue_history_remove_by_id(void)
-{
-        settings.history_length = 5;
-        settings.indicate_hidden = false;
-        settings.notification_limit = 0;
-
-        queues_init();
-
-        struct notification *n;
-        struct notification *n1 = NULL;
-
-
-        for (int i = 0; i < 5; i++) {
-                char name[] = { 'n', '0'+i, '\0' }; // n<i>
-                n = test_notification(name, -1);
-                queues_notification_insert(n);
-
-                // Store notification at arbitrary position to remove
-                if(i==1) {
-                        n1 = n;
-                }
-        }
-        queues_history_push_all();
-
-        queues_history_remove_by_id(n->id);
-        queues_history_remove_by_id(n1->id);
-
-        QUEUE_LEN_ALL(0, 0, 3);   
-        
-        QUEUE_NOT_CONTAINS(HIST, n);
-        QUEUE_NOT_CONTAINS(HIST, n1);
 
         queues_teardown();
         PASS();
@@ -1043,10 +989,8 @@ SUITE(suite_queues)
         RUN_TEST(test_datachange_endless_agethreshold);
         RUN_TEST(test_datachange_queues);
         RUN_TEST(test_datachange_ttl);
-        RUN_TEST(test_queue_history_clear);
         RUN_TEST(test_queue_history_overfull);
         RUN_TEST(test_queue_history_pushall);
-        RUN_TEST(test_queue_history_remove_by_id);
         RUN_TEST(test_queue_init);
         RUN_TEST(test_queue_insert_id_invalid);
         RUN_TEST(test_queue_insert_id_replacement);

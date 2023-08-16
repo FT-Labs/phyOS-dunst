@@ -18,7 +18,6 @@ If dunst segfaults (please install the debug symbols or install dunst manually a
 - Version: `<!-- output of dunst -v -->`
 - Install type: `<!-- [package|manually|...] -->`
 - Window manager / Desktop environment: `<!--  -->`
-- Distro: `<!--  -->`
 
 <details>
 <summary>Minimal dunstrc</summary>

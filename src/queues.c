@@ -342,13 +342,6 @@ void queues_notification_close(struct notification *n, enum reason reason)
 }
 
 /* see queues.h */
-void queues_history_clear(void)
-{
-        g_queue_foreach(history, (GFunc)notification_unref, NULL);
-        g_queue_clear(history);
-}
-
-/* see queues.h */
 void queues_history_pop(void)
 {
         if (g_queue_is_empty(history))
@@ -416,29 +409,6 @@ void queues_history_push_all(void)
 }
 
 /* see queues.h */
-void queues_history_remove_by_id(unsigned int id) {
-        struct notification *n = NULL;
-
-        if (g_queue_is_empty(history))
-                return;
-
-        for (GList *iter = g_queue_peek_head_link(history); iter;
-                iter = iter->next) {
-                struct notification *cur = iter->data;
-                if (cur->id == id) {
-                        n = cur;
-                        break;
-                }
-        }
-
-        if (n == NULL)
-                return;
-
-        g_queue_remove(history, n);
-        notification_unref(n);
-}
-
-/* see queues.h */
 void queues_update(struct dunst_status status, gint64 time)
 {
         GList *iter, *nextiter;
@@ -464,7 +434,7 @@ void queues_update(struct dunst_status status, gint64 time)
                 }
 
 
-                if (queues_notification_is_finished(n, status, time)) {
+                if (queues_notification_is_finished(n, status, time)){
                         queues_notification_close(n, REASON_TIME);
                         iter = nextiter;
                         continue;
@@ -547,7 +517,6 @@ void queues_update(struct dunst_status status, gint64 time)
                         }
                 }
         }
-        signal_length_propertieschanged();
 }
 
 /* see queues.h */

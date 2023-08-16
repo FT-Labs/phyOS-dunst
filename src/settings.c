@@ -172,7 +172,7 @@ void print_rule(struct rule* r) {
 void check_and_correct_settings(struct settings *s) {
 
 #ifndef ENABLE_WAYLAND
-        if (is_running_wayland()) {
+        if (is_running_wayland()){
                 /* We are using xwayland now. Setting force_xwayland to make sure
                  * the idle workaround below is activated */
                 settings.force_xwayland = true;
@@ -189,23 +189,17 @@ void check_and_correct_settings(struct settings *s) {
 
         // check sanity of the progress bar options
         {
-                if (s->progress_bar_height < (2 * s->progress_bar_frame_width)) {
+                if (s->progress_bar_height < (2 * s->progress_bar_frame_width)){
                         DIE("setting progress_bar_frame_width is bigger than half of progress_bar_height");
                 }
-                if (s->progress_bar_max_width < (2 * s->progress_bar_frame_width)) {
+                if (s->progress_bar_max_width < (2 * s->progress_bar_frame_width)){
                         DIE("setting progress_bar_frame_width is bigger than half of progress_bar_max_width");
                 }
-                if (s->progress_bar_max_width < s->progress_bar_min_width) {
+                if (s->progress_bar_max_width < s->progress_bar_min_width){
                         DIE("setting progress_bar_max_width is smaller than progress_bar_min_width");
                 }
                 if (s->progress_bar_min_width > s->width.max) {
                         LOG_W("Progress bar min width is greater than the max width of the notification.");
-                }
-                int progress_bar_max_corner_radius = (s->progress_bar_height / 2);
-                if (s->progress_bar_corner_radius > progress_bar_max_corner_radius) {
-                        settings.progress_bar_corner_radius = progress_bar_max_corner_radius;
-                        LOG_W("Progress bar corner radius clamped to half of progress bar height (%i).",
-                                progress_bar_max_corner_radius);
                 }
         }
 

@@ -5,9 +5,9 @@ dunst - configuration file
 =head1 DESCRIPTION
 
 The configuration is divided into sections in an ini-like format. Every section
-starts with the section's name in square brackets. After that is a list of
+start with the section's name in square brackets. After that is a list of
 key-value pairs that specify the settings. Whitespace is purely cosmetic and
-doesn't change the result.
+doesn't matter for the result.
 
 The 'global' section contains the general settings applying to all of dunst. The
 rest of the settings can be specified via rules and can be located in any
@@ -182,11 +182,6 @@ to fit the progress bar.
 
 The frame width of the progress bar in pixels. This value should be smaller
 than half of the progress bar height.
-
-=item B<progress_bar_corner_radius> (default: 0)
-
-The corner radius of the progress bar in pixels. Gives the progress bar
-rounded corners. Set to 0 to disable.
 
 =item B<indicate_hidden> (values: [true/false], default: true)
 

@@ -496,16 +496,13 @@ static int frame_internal_radius (int r, int w, int h)
  * Create a path on the given cairo context to draw the background of a notification.
  * The top corners will get rounded by `corner_radius`, if `first` is set.
  * Respectably the same for `last` with the bottom corners.
- *
- * TODO: Pass additional frame width information to fix blurry lines due to fractional scaling
- *       X and Y can then be calculated as:  x = round(x*scale) + half_frame_width
  */
-void draw_rounded_rect(cairo_t *c, float x, float y, int width, int height, int corner_radius, double scale, bool first, bool last)
+void draw_rounded_rect(cairo_t *c, int x, int y, int width, int height, int corner_radius, double scale, bool first, bool last)
 {
         width = round(width * scale);
         height = round(height * scale);
-        x *= scale;
-        y *= scale;
+        x = round(x * scale);
+        y = round(y * scale);
         corner_radius = round(corner_radius * scale);
 
         const double degrees = M_PI / 180.0;
@@ -716,7 +713,7 @@ static void render_content(cairo_t *c, struct colored_layout *cl, int width, dou
         }
 
         // progress bar positioning
-        if (have_progress_bar(cl)) {
+        if (have_progress_bar(cl)){
                 int progress = MIN(cl->n->progress, 100);
                 unsigned int frame_x = 0;
                 unsigned int frame_width = settings.progress_bar_frame_width,
@@ -743,32 +740,27 @@ static void render_content(cairo_t *c, struct colored_layout *cl, int width, dou
 
                 double half_frame_width = frame_width / 2.0;
 
-                /* Draw progress bar
-                * TODO: Modify draw_rounde_rect to fix blurry lines due to fractional scaling
-                * Note: the bar could be drawn a bit smaller, because the frame is drawn on top 
-                */
-                // left side (fill)
+                // draw progress bar
+                // Note: the bar could be drawn a bit smaller, because the frame is drawn on top
+                // left side
                 cairo_set_source_rgba(c, cl->highlight.r, cl->highlight.g, cl->highlight.b, cl->highlight.a);
-                draw_rounded_rect(c, x_bar_1, frame_y, progress_width_1, progress_height, 
-                        settings.progress_bar_corner_radius, scale, true, true);
+                draw_rect(c, x_bar_1, frame_y, progress_width_1, progress_height, scale);
                 cairo_fill(c);
-                // right side (background)
+                // right side
                 cairo_set_source_rgba(c, cl->bg.r, cl->bg.g, cl->bg.b, cl->bg.a);
-                draw_rounded_rect(c, x_bar_2, frame_y, progress_width_2, progress_height, 
-                        settings.progress_bar_corner_radius, scale, true, true);
-
+                draw_rect(c, x_bar_2, frame_y, progress_width_2, progress_height, scale);
                 cairo_fill(c);
-
                 // border
                 cairo_set_source_rgba(c, cl->frame.r, cl->frame.g, cl->frame.b, cl->frame.a);
+                // TODO draw_rect instead of cairo_rectangle resulted
+                // in blurry lines due to rounding (half_frame_width
+                // can be non-integer)
+                cairo_rectangle(c,
+                                (frame_x + half_frame_width) * scale,
+                                (frame_y + half_frame_width) * scale,
+                                (progress_width - frame_width) * scale,
+                                progress_height * scale);
                 cairo_set_line_width(c, frame_width * scale);
-                draw_rounded_rect(c,
-                                frame_x + half_frame_width,
-                                frame_y + half_frame_width,
-                                progress_width - frame_width,
-                                progress_height,
-                                settings.progress_bar_corner_radius,
-                                scale, true, true);
                 cairo_stroke(c);
         }
 }

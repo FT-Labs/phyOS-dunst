@@ -137,7 +137,7 @@ void string_strip_delimited(char *str, char a, char b)
                         cskip = 0;
                         str[iwrite++] = str[iread];
                 }
-                if (copen > 0) {
+                if (copen > 0){
                         cskip++;
                 }
         }
@@ -156,7 +156,7 @@ char **string_to_array(const char *string, const char *delimiter)
         char **arr = NULL;
         if (string) {
                 arr = g_strsplit(string, delimiter, 0);
-                for (int i = 0; arr[i]; i++) {
+                for (int i = 0; arr[i]; i++){
                         g_strstrip(arr[i]);
                 }
         }
@@ -364,7 +364,7 @@ static const char* deprecated_sections[] = {
 
 static const char* deprecated_sections_message[] = {
         "The settings from the frame section have been moved to the global section.", // frame
-        "Settings in the shortcuts sections have been moved to the global section.\nAlternatively you can bind shortcuts in your window manager to dunstctl commands. For that, see the manual for dunstctl.", // shortcuts
+        "Settings in the shortcuts sections have been moved to the global section.\nAlternatively you can bind shortcuts in you window manager to dunstctl commands. For that, see the manual for dunstctl.", // shortcuts
 };
 
 /* see utils.h */
